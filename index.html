@@ -1958,6 +1958,8 @@
     <p id="modalMsg" style="white-space:pre-line;">The PDF has been generated. Your email client will open with the PDF attached. Please send to complete submission.</p>
     <div class="modal-actions">
       <button class="btn btn-primary" onclick="closeModal()">Close</button>
+      <button class="btn btn-primary" id="returnToFieldToolsBtn" onclick="doReturnToFieldTools()"
+        style="background:#003466;display:none;">← Field Tools</button>
     </div>
   </div>
 </div>
@@ -4415,6 +4417,7 @@ async function uploadAndSend() {
     document.getElementById('modalMsg').textContent =
       `✅ Audit submitted!\n\n📄 PDF + Excel saved to device\n☁️ Files uploaded to Google Drive\n📧 Email notification sent\n${driveLink ? '\nDrive link:\n' + driveLink : ''}`;
     document.getElementById('submitModal').classList.add('active');
+    showReturnButton();
     showToast('✅ Audit complete!');
 
   } catch(err) {
@@ -4422,6 +4425,7 @@ async function uploadAndSend() {
     document.getElementById('modalMsg').textContent =
       `⚠️ Email failed: ${errMsg}\n\nFiles saved:\n• PDF + Excel on device\n${driveLink ? '• Files on Google Drive\n' : ''}`;
     document.getElementById('submitModal').classList.add('active');
+    showReturnButton();
     showToast('⚠️ Email failed — files saved to Drive & device');
   }
 }
@@ -5005,6 +5009,17 @@ let _auditPdfFileId  = null;   // tracks PDF file ID when editing an existing au
 
 function closeModal() {
   document.getElementById('submitModal').classList.remove('active');
+}
+
+function doReturnToFieldTools() {
+  const clientId = new URLSearchParams(window.location.search).get('client');
+  redirectToFieldTools(clientId);
+}
+
+// Show "Return to Field Tools" button in modal after successful upload
+function showReturnButton() {
+  const btn = document.getElementById('returnToFieldToolsBtn');
+  if (btn) btn.style.display = 'inline-block';
 }
 
 // =====================================================================

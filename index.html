@@ -36,6 +36,11 @@
     --shadow: 0 2px 12px rgba(0,52,102,0.10);
     --shadow-lg: 0 8px 32px rgba(0,52,102,0.15);
     --radius: 12px;
+  .contact-card{border:1.5px solid var(--blue-light);border-radius:10px;overflow:hidden;margin-bottom:12px;}
+  .contact-card-hdr{background:var(--blue-light);border-bottom:1.5px solid #b5d4f4;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;}
+  .contact-card-hdr span{font-size:11px;font-weight:700;color:var(--blue-deep);text-transform:uppercase;letter-spacing:0.5px;}
+  .contact-card-hdr .req-badge{font-size:10px;font-weight:700;background:var(--blue-mid);color:white;border-radius:20px;padding:2px 8px;}
+  .contact-card-body{padding:14px 14px 4px;}
     --radius-sm: 8px;
   }
 
@@ -1178,6 +1183,9 @@
 
 <!-- MAIN CONTENT -->
 <div class="main-content">
+<input type="hidden" id="_siteLocationName">
+<input type="hidden" id="_descriptor">
+<input type="hidden" id="_generatedSiteName">
   <!-- CLIENT BANNER -->
   <div id="clientBanner" style="display:none;align-items:center;gap:12px;
       background:#e8f2fb;border:1.5px solid #003466;
@@ -1346,31 +1354,70 @@
         </div>
       </div>
 
-      <div style="display:flex;align-items:center;gap:10px;margin:18px 0 14px;">
-        <div style="flex:1;border-top:3px solid var(--blue-mid);"></div>
-        <span style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--blue-mid);white-space:nowrap;">Site Contact</span>
-        <div style="flex:1;border-top:3px solid var(--blue-mid);"></div>
+      <div style="margin:18px 0 14px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--blue-mid);">Contacts — required before submission</div>
+
+      <div class="contact-card">
+        <div class="contact-card-hdr">
+          <span>Business / Site Contact</span>
+          <span class="req-badge">Required</span>
+        </div>
+        <div class="contact-card-body">
+          <div class="field-row">
+            <div class="field-group">
+              <label class="field-label required">Full Name</label>
+              <input type="text" id="bizContactName" placeholder="Full name">
+            </div>
+            <div class="field-group">
+              <label class="field-label required">Title / Role</label>
+              <input type="text" id="bizContactRole" placeholder="e.g. Site Manager">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label class="field-label required">Email</label>
+              <input type="email" id="bizContactEmail" placeholder="name@company.com.au">
+            </div>
+            <div class="field-group">
+              <label class="field-label required">Phone</label>
+              <input type="tel" id="bizContactPhone" placeholder="04XX XXX XXX">
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="field-row">
-        <div class="field-group">
-          <label class="field-label">Site Contact Name</label>
-          <input type="text" id="siteContact" placeholder="Full name">
+      <div class="contact-card">
+        <div class="contact-card-hdr">
+          <span>Logistics Contact</span>
+          <span class="req-badge">Required</span>
         </div>
-        <div class="field-group">
-          <label class="field-label">Site Contact Mobile</label>
-          <input type="tel" id="siteMobile" placeholder="04XX XXX XXX">
+        <div class="contact-card-body">
+          <div class="field-row">
+            <div class="field-group">
+              <label class="field-label required">Full Name</label>
+              <input type="text" id="logContactName" placeholder="Full name">
+            </div>
+            <div class="field-group">
+              <label class="field-label required">Title / Role</label>
+              <input type="text" id="logContactRole" placeholder="e.g. Transport Manager">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label class="field-label required">Email</label>
+              <input type="email" id="logContactEmail" placeholder="name@company.com.au">
+            </div>
+            <div class="field-group">
+              <label class="field-label required">Phone</label>
+              <input type="tel" id="logContactPhone" placeholder="04XX XXX XXX">
+            </div>
+          </div>
         </div>
       </div>
-      <div class="field-row">
-        <div class="field-group">
-          <label class="field-label">Site Contact Email Address</label>
-          <input type="email" id="siteEmail" placeholder="contact@company.com">
-        </div>
-        <div class="field-group">
-          <label class="field-label">Site Contact Title / Role</label>
-          <input type="text" id="siteContactTitle" placeholder="">
-        </div>
+
+      <div class="field-group" style="margin-bottom:14px;">
+        <label class="field-label">Proof of Delivery (POD) email</label>
+        <input type="email" id="podEmail" placeholder="e.g. pod@company.com.au">
+        <div style="font-size:11px;color:var(--gray-mid);margin-top:4px;">Shared with Admin form — fills automatically if already entered</div>
       </div>
 
     </div>
@@ -2732,10 +2779,24 @@ function collectFormData() {
     suburb: get('suburb'),
     state: get('state'),
     postcode: get('postcode'),
-    siteContact: get('siteContact'),
-    siteContactTitle: get('siteContactTitle'),
-    siteEmail: get('siteEmail'),
-    siteMobile: get('siteMobile'),
+    _siteLocationName: get('_siteLocationName'),
+    _descriptor:       get('_descriptor'),
+    generatedSiteName: get('_generatedSiteName'),
+    siteName:          get('_generatedSiteName'),
+    bizContactName:  get('bizContactName'),
+    bizContactRole:  get('bizContactRole'),
+    bizContactEmail: get('bizContactEmail'),
+    bizContactPhone: get('bizContactPhone'),
+    logContactName:  get('logContactName'),
+    logContactRole:  get('logContactRole'),
+    logContactEmail: get('logContactEmail'),
+    logContactPhone: get('logContactPhone'),
+    podEmail:        get('podEmail'),
+    // Backward compat aliases used by PDF/email
+    siteContact:      get('bizContactName'),
+    siteContactTitle: get('bizContactRole'),
+    siteEmail:        get('bizContactEmail'),
+    siteMobile:       get('bizContactPhone'),
     siteNumber: get('siteNumber'),
     siteNetwork: get('siteNetwork'),
     // B
@@ -2981,10 +3042,15 @@ function autoFillCustomer(siteNum) {
   setField('siteAddress', c.address);
   setField('suburb', c.suburb);
   setField('postcode', c.postcode);
-  setField('siteContact', c.contactName);
-  setField('siteContactTitle', c.contactTitle);
-  setField('siteEmail', c.contactEmail);
-  setField('siteMobile', c.contactMobile);
+  setField('bizContactName',  c.bizContactName  || c.contactName || '');
+  setField('bizContactRole',  c.bizContactRole  || c.contactTitle || '');
+  setField('bizContactEmail', c.bizContactEmail || c.contactEmail || '');
+  setField('bizContactPhone', c.bizContactPhone || c.contactMobile || '');
+  setField('logContactName',  c.logContactName  || '');
+  setField('logContactRole',  c.logContactRole  || '');
+  setField('logContactEmail', c.logContactEmail || '');
+  setField('logContactPhone', c.logContactPhone || '');
+  setField('podEmail',        c.podEmail        || '');
 
   // State dropdown
   const stateEl = document.getElementById('state');
@@ -3045,8 +3111,11 @@ function autoFillCustomer(siteNum) {
 }
 
 function clearCustomerFields() {
-  ['siteAddress','suburb','postcode','siteContact','siteContactTitle','siteEmail',
-   'siteMobile','tankVolume','safeFill','tankSerial','tankType','tankTypeOther','dipSystem','dipSystemOther',
+  ['siteAddress','suburb','postcode',
+   'bizContactName','bizContactRole','bizContactEmail','bizContactPhone',
+   'logContactName','logContactRole','logContactEmail','logContactPhone',
+   'podEmail','_siteLocationName','_descriptor','_generatedSiteName',
+   'tankVolume','safeFill','tankSerial','tankType','tankTypeOther','dipSystem','dipSystemOther',
    'siteNumber','siteNetwork'].forEach(id => setField(id, ''));
   document.getElementById('state').selectedIndex = 0;
   document.getElementById('tankOwner').selectedIndex = 0;
@@ -3442,39 +3511,59 @@ async function generatePDF(returnDoc=false) {
     y += rowH + 2;
   }
 
-  // ---- COVER / HEADER ----
-  doc.setFillColor(...BLUE_DEEP);
-  doc.rect(0, 0, 210, 32, 'F');
-  doc.setFillColor(...BLUE_MID);
-  doc.rect(0, 28, 210, 4, 'F');
+  // ---- STANDARD HEADER (softened navy ~35%) ----
+  function drawStdHeader(doc,d,formLabel,MC,ML){
+    const m=margin,pW=210,cW=pW-m*2;
+    const NAVY=[0,52,102],BLUE=[0,85,165],GRAY2=[108,117,125],BLK=[30,40,50];
+    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(...NAVY);
+    doc.text('Bio',m,9);const bW=doc.getTextWidth('Bio');
+    doc.setTextColor(...BLUE);doc.text('Blue',m+bW,9);
+    doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...GRAY2);
+    doc.text('  \u00b7  '+formLabel,m+bW+doc.getTextWidth('Blue'),9);
+    const dv=d.auditDate||d.formDate||'';
+    if(dv){let ds=dv;try{ds=new Date(dv+'T12:00:00').toLocaleDateString('en-AU');}catch(e){}doc.text(ds,pW-m,9,{align:'right'});}
+    doc.setDrawColor(...BLUE);doc.setLineWidth(0.4);doc.line(m,11.5,pW-m,11.5);
+    doc.setFillColor(...MC);doc.rect(m,13,cW,14,'F');
+    doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(255,255,255);
+    doc.text(formLabel.toUpperCase(),m+3,17.5);
+    const sn=(d.generatedSiteName||d.siteName||d.customerName||'').toUpperCase();
+    doc.setFont('helvetica','bold');doc.setFontSize(11);
+    doc.text(doc.splitTextToSize(sn,cW-8)[0],m+3,24);
+    const by=28.5;doc.setFillColor(...ML);doc.rect(m,by,cW,37,'F');
+    const bm=m+3,hw=(cW-8)/2;
+    const lbl=(t,x,y)=>{doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(...MC);doc.text(t,x,y);};
+    const val=(t,x,y)=>{doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...BLK);doc.text((t||'\u2014').toString().substring(0,42),x,y);};
+    const dv2=(y)=>{doc.setDrawColor(200,210,220);doc.setLineWidth(0.2);doc.line(m+2,y,pW-m-2,y);};
+    lbl('BILLING ENTITY',bm,by+3);val(d.customerName||d.companyName,bm,by+7);
+    lbl('DESCRIPTOR',bm+hw+4,by+3);val(d._descriptor,bm+hw+4,by+7);
+    dv2(by+9.5);
+    lbl('SITE LOCATION / END USER',bm,by+12.5);val(d._siteLocationName,bm,by+16.5);
+    lbl('AUDITOR',bm+hw+4,by+12.5);val(d.auditorName||'\u2014',bm+hw+4,by+16.5);
+    dv2(by+19);lbl('ADDRESS',bm,by+22);
+    const addr=[d.siteAddress,d.suburb,d.state,d.postcode].filter(Boolean).join(', ');
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...BLK);
+    doc.text((addr||'\u2014').substring(0,65),bm,by+26);
+    dv2(by+28.5);lbl('BUSINESS CONTACT',bm,by+31.5);
+    const bizN=d.bizContactName||d.siteContact||'\u2014';
+    doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...BLK);
+    doc.text(bizN.substring(0,28),bm,by+35.5);
+    const bizP=d.bizContactPhone||d.siteMobile||'';
+    const bizE=d.bizContactEmail||d.siteEmail||'';
+    doc.setFont('helvetica','normal');doc.setFontSize(7);
+    if(bizP){doc.setTextColor(...GRAY2);doc.text(bizP,bm+48,by+35.5);}
+    if(bizE){doc.setTextColor(...BLUE);doc.text(bizE.substring(0,32),bm+74,by+35.5);}
+    return by+37+4;
+  }
 
-  doc.setTextColor(...WHITE);
-  doc.setFontSize(7);
-  doc.setFont('helvetica','normal');
-  doc.text('BIOBLUE', margin, 10);
-  doc.setFontSize(15);
-  doc.setFont('helvetica','bold');
-  doc.text('Bulk AdBlue\u00ae Site Audit', margin, 18);
-  doc.setFontSize(8);
-  doc.setFont('helvetica','normal');
-  doc.text('Site Safety and Quality Assurance Checklist \u00b7 V2 2025', margin, 24);
-
-  const auditInfo = d.auditDate ? `Date: ${d.auditDate}` : '';
-  doc.text(auditInfo, pageW - margin, 18, { align: 'right' });
-  doc.text(d.customerName || '', pageW - margin, 24, { align: 'right' });
-  const auditTypeLabel = d.auditType === 'offsite' ? 'Interim Desktop Audit (Logistics only)' : 'Full Onsite Audit';
-  doc.setFontSize(7); doc.setFont('helvetica','italic');
-  doc.text(auditTypeLabel, pageW - margin, 29, { align: 'right' });
-
-  y = 40;
+  y = drawStdHeader(doc, d, 'Bulk AdBlue\u00ae Site Audit', [89,123,156], [232,242,251]);
 
   // ---- SECTION A ----
-  // Site Details — no section header in PDF
+  // Site Details
   twoFieldRow('Customer / Business Name', d.customerName, 'Date of Audit', d.auditDate);
   twoFieldRow('Site Number', d.siteNumber, 'Network', d.siteNetwork);
   fieldRow('Delivery Site Address', [d.siteAddress, d.suburb, d.state, d.postcode].filter(Boolean).join(', '));
-  twoFieldRow('Site Contact Name', d.siteContact + (d.siteContactTitle ? ' – ' + d.siteContactTitle : ''), 'Mobile', d.siteMobile);
-  twoFieldRow('Email', d.siteEmail, '', '');
+  twoFieldRow('Business Contact', (d.bizContactName||'—') + (d.bizContactRole ? ' \u2013 ' + d.bizContactRole : ''), 'Phone', d.bizContactPhone||'—');
+  twoFieldRow('Email', d.bizContactEmail||'—', 'Logistics Contact', d.logContactName||'—');
 
   // ---- SECTION B ----
   sectionHeader('2. ACCESS & SITE SAFETY');
@@ -3816,7 +3905,7 @@ async function generatePDF(returnDoc=false) {
 
   if (returnDoc) return doc;
 
-  const fname = `BioBlue_Site_Audit_${d.customerName.replace(/\s+/g,'_') || 'Draft'}_${d.auditDate || 'undated'}.pdf`;
+  const fname = ((d.generatedSiteName||d.siteName||d.customerName||'Draft').replace(/[^a-zA-Z0-9\s]/g,'').trim().replace(/\s+/g,'_'))+'.Audit.pdf';
   doc.save(fname);
   showToast('📄 PDF downloaded!');
 }
@@ -4176,7 +4265,7 @@ async function downloadToDevice() {
   try {
     const doc = await generatePDF(true);
     const d = collectFormData();
-    const baseName = `BioBlue_Site_Audit_${d.customerName.replace(/\s+/g,'_') || 'Draft'}_${d.auditDate || new Date().toISOString().split('T')[0]}`;
+    const baseName = ((d.generatedSiteName||d.siteName||d.customerName||'Draft').replace(/[^a-zA-Z0-9\s]/g,'').trim().replace(/\s+/g,'_'))+'.Audit';
     const pdfBlob = doc.output('blob');
     const pdfUrl = URL.createObjectURL(pdfBlob);
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -4214,6 +4303,14 @@ async function uploadAndSend() {
     { id: 'customerSelect', check: () => getCustomerName().trim() !== '', label: 'Customer / Business Name', section: 'sectionA' },
     { id: 'siteAddress',    check: () => document.getElementById('siteAddress').value.trim() !== '', label: 'Delivery Site Address', section: 'sectionA' },
     { id: 'auditDate',      check: () => document.getElementById('auditDate').value.trim() !== '', label: 'Date of Audit', section: 'sectionA' },
+    { id: 'bizContactName', check: () => document.getElementById('bizContactName')?.value.trim() !== '', label: 'Business Contact — Full Name', section: 'sectionA' },
+    { id: 'bizContactRole', check: () => document.getElementById('bizContactRole')?.value.trim() !== '', label: 'Business Contact — Title / Role', section: 'sectionA' },
+    { id: 'bizContactEmail',check: () => document.getElementById('bizContactEmail')?.value.trim() !== '', label: 'Business Contact — Email', section: 'sectionA' },
+    { id: 'bizContactPhone',check: () => document.getElementById('bizContactPhone')?.value.trim() !== '', label: 'Business Contact — Phone', section: 'sectionA' },
+    { id: 'logContactName', check: () => document.getElementById('logContactName')?.value.trim() !== '', label: 'Logistics Contact — Full Name', section: 'sectionA' },
+    { id: 'logContactRole', check: () => document.getElementById('logContactRole')?.value.trim() !== '', label: 'Logistics Contact — Title / Role', section: 'sectionA' },
+    { id: 'logContactEmail',check: () => document.getElementById('logContactEmail')?.value.trim() !== '', label: 'Logistics Contact — Email', section: 'sectionA' },
+    { id: 'logContactPhone',check: () => document.getElementById('logContactPhone')?.value.trim() !== '', label: 'Logistics Contact — Phone', section: 'sectionA' },
     { id: 'auditorName',    check: () => document.getElementById('auditorName').value.trim() !== '', label: 'Auditor Name', section: 'sectionF' },
     ...(hasC2Failure ? [{ id: 'correctiveActions', check: () => document.getElementById('correctiveActions').value.trim() !== '', label: 'Corrective Actions (required for C.2 failures)', section: 'sectionD' }] : []),
   ];
@@ -4240,7 +4337,7 @@ async function uploadAndSend() {
   }
 
   const d = collectFormData();
-  const baseName = `BioBlue_Site_Audit_${d.customerName.replace(/\s+/g,'_') || 'Draft'}_${d.auditDate || new Date().toISOString().split('T')[0]}`;
+  const baseName = ((d.generatedSiteName||d.siteName||d.customerName||'Draft').replace(/[^a-zA-Z0-9\s]/g,'').trim().replace(/\s+/g,'_'))+'.Audit';
 
   // 1. Generate PDF
   showToast('⏳ Generating PDF...');
@@ -6011,20 +6108,23 @@ async function fetchClientDetails(clientId) {
     const get = col => { const i = hdrs.indexOf(col); return (i > -1 && row[i]) ? row[i].toString() : ''; };
 
     const fields = {
-      customerName:  get('Billing Entity'),
-      companyName:   get('Billing Entity'),
-      siteName:      get('Site Name') || get('Billing Entity'),
-      siteAddress:   get('Street Address'),
-      suburb:        get('Suburb'),
-      postcode:      get('Postcode'),
-      contactName:   get('Contact Name'),
-      contactRole:   get('Contact Title'),
-      contactMobile: get('Contact Mobile'),
-      contactEmail:  get('Contact Email'),
-      contactPhone:  get('Contact Mobile'),
-      siteContact:   get('Contact Name'),
-      siteMobile:    get('Contact Mobile'),
-      siteEmail:     get('Contact Email'),
+      customerName:      get('Billing Entity'),
+      siteName:          get('Site Name') || get('Billing Entity'),
+      siteAddress:       get('Street Address'),
+      suburb:            get('Suburb'),
+      postcode:          get('Postcode'),
+      _siteLocationName: get('Site Location Name'),
+      _descriptor:       get('Descriptor'),
+      _generatedSiteName:get('Site Name'),
+      bizContactName:    get('Business Contact Name') || get('Contact Name'),
+      bizContactRole:    get('Business Contact Role') || get('Contact Title'),
+      bizContactEmail:   get('Business Contact Email')|| get('Contact Email'),
+      bizContactPhone:   get('Business Contact Phone')|| get('Contact Mobile'),
+      logContactName:    get('Logistics Name'),
+      logContactRole:    get('Logistics Role'),
+      logContactEmail:   get('Logistics Email'),
+      logContactPhone:   get('Logistics Phone'),
+      podEmail:          get('POD Email'),
     };
 
     Object.entries(fields).forEach(([id, val]) => {
@@ -6200,15 +6300,37 @@ async function updateClientRecordFromAudit(rootFolderId, clientId) {
     const finalAuditCol    = hdrs.indexOf('Site Audit ✓');
     const finalCustomerCol = hdrs.indexOf('Customer ✓');
 
-    // Find matching row and tick
+    // Get current audit data for contact write-back
+    const auditData = collectFormData ? collectFormData() : {};
+    const setCol = (col, val) => { const i = hdrs.indexOf(col); if (i > -1 && val) rows[rowIdx][i] = val; };
+
+    // Find matching row and tick + write contacts/POD
     let updated = false;
+    let rowIdx = -1;
     for (let i = 1; i < rows.length; i++) {
       if (rows[i][idCol] === clientId) {
         rows[i][finalAuditCol]    = '✓';
         rows[i][finalCustomerCol] = '✓';
+        rowIdx = i;
         updated = true;
         break;
       }
+    }
+
+    if (updated && rowIdx > -1) {
+      setCol('Business Contact Name',  auditData.bizContactName);
+      setCol('Business Contact Role',  auditData.bizContactRole);
+      setCol('Business Contact Email', auditData.bizContactEmail);
+      setCol('Business Contact Phone', auditData.bizContactPhone);
+      setCol('Logistics Name',  auditData.logContactName);
+      setCol('Logistics Role',  auditData.logContactRole);
+      setCol('Logistics Email', auditData.logContactEmail);
+      setCol('Logistics Phone', auditData.logContactPhone);
+      setCol('POD Email', auditData.podEmail);
+      setCol('Contact Name',   auditData.bizContactName);
+      setCol('Contact Title',  auditData.bizContactRole);
+      setCol('Contact Mobile', auditData.bizContactPhone);
+      setCol('Contact Email',  auditData.bizContactEmail);
     }
 
     if (!updated) {

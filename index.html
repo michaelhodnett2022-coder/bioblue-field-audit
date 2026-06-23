@@ -3406,10 +3406,10 @@ function getExifOrientation(dataUrl, callback) {
 // =====================================================================
 // PDF GENERATION
 // =====================================================================
-async function generatePDF(returnDoc=false) {
+async function generatePDF(returnDoc=false, presetData=null) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const d = collectFormData();
+  const d = presetData || collectFormData();
   const margin = 15;
   const pageW = 210;
   const contentW = pageW - margin*2;
@@ -3518,14 +3518,16 @@ async function generatePDF(returnDoc=false) {
     doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(...NAVY);
     doc.text('Bio',m,9);const bW=doc.getTextWidth('Bio');
     doc.setTextColor(...BLUE);doc.text('Blue',m+bW,9);
+    const blueW=doc.getTextWidth('Blue'); // measured BEFORE font size changes below — fixes overlap bug
     doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...GRAY2);
-    doc.text('  \u00b7  '+formLabel,m+bW+doc.getTextWidth('Blue'),9);
+    doc.text('  \u00b7  '+formLabel,m+bW+blueW,9);
     const dv=d.auditDate||d.formDate||'';
     if(dv){let ds=dv;try{ds=new Date(dv+'T12:00:00').toLocaleDateString('en-AU');}catch(e){}doc.text(ds,pW-m,9,{align:'right'});}
     doc.setDrawColor(...BLUE);doc.setLineWidth(0.4);doc.line(m,11.5,pW-m,11.5);
     doc.setFillColor(...MC);doc.rect(m,13,cW,14,'F');
     doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(255,255,255);
     doc.text(formLabel.toUpperCase(),m+3,17.5);
+    if (d.docRef) { doc.text(d.docRef,pW-m-3,17.5,{align:'right'}); }
     const sn=(d.generatedSiteName||d.siteName||d.customerName||'').toUpperCase();
     doc.setFont('helvetica','bold');doc.setFontSize(11);
     doc.text(doc.splitTextToSize(sn,cW-8)[0],m+3,24);
@@ -4344,9 +4346,14 @@ async function uploadAndSend() {
   const d = collectFormData();
   const baseName = ((d.generatedSiteName||d.siteName||d.customerName||'Draft').replace(/[^a-zA-Z0-9\s]/g,'').trim().replace(/\s+/g,'_'))+'.Audit';
 
+  // Peek the upcoming document number so it can appear in the PDF header.
+  // Non-fatal if the token isn't ready yet — falls back to no docRef shown.
+  const _peekCount = await peekAuditDocCount(_clientIdCheck);
+  if (_peekCount) d.docRef = _clientIdCheck + '-' + _peekCount;
+
   // 1. Generate PDF
   showToast('⏳ Generating PDF...');
-  const pdfDoc = await generatePDF(true);
+  const pdfDoc = await generatePDF(true, d);
   const pdfBlob = pdfDoc.output('blob');
 
   // 2. Generate Excel blob
@@ -4429,12 +4436,21 @@ async function uploadAndSend() {
     showToast('📁 Finding client folder...');
     const _auditClientFolderId = await getClientFolderFromRecord(folderId, _auditClientId, _auditFolderName);
 
-    // Upload PDF into client folder
+    // Upload PDF into client folder — overwrite existing file of same name, never duplicate
+    const _existingAuditFileId = await findExistingFile(baseName + '.pdf', _auditClientFolderId);
     const pdfForm = new FormData();
-    pdfForm.append('metadata', new Blob([JSON.stringify({ name: baseName + '.pdf', parents: [_auditClientFolderId] })], { type: 'application/json' }));
-    pdfForm.append('file', pdfBlob, baseName + '.pdf');
-    const upRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink',
-      { method: 'POST', headers: { Authorization: `Bearer ${gdriveToken}` }, body: pdfForm });
+    let upRes;
+    if (_existingAuditFileId) {
+      pdfForm.append('metadata', new Blob([JSON.stringify({})], { type: 'application/json' }));
+      pdfForm.append('file', pdfBlob, baseName + '.pdf');
+      upRes = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${_existingAuditFileId}?uploadType=multipart&fields=id,webViewLink`,
+        { method: 'PATCH', headers: { Authorization: `Bearer ${gdriveToken}` }, body: pdfForm });
+    } else {
+      pdfForm.append('metadata', new Blob([JSON.stringify({ name: baseName + '.pdf', parents: [_auditClientFolderId] })], { type: 'application/json' }));
+      pdfForm.append('file', pdfBlob, baseName + '.pdf');
+      upRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink',
+        { method: 'POST', headers: { Authorization: `Bearer ${gdriveToken}` }, body: pdfForm });
+    }
     const uploaded = await upRes.json();
     if (uploaded.id) {
       driveLink = uploaded.webViewLink;
@@ -4454,7 +4470,8 @@ async function uploadAndSend() {
 
     // Update client record — tick Site Audit ✓ + Customer ✓
     showToast('📊 Updating client record...');
-    await updateClientRecordFromAudit(folderId, _auditClientId);
+    const _auditRecordResult = await updateClientRecordFromAudit(folderId, _auditClientId);
+    if (_auditRecordResult) d.docRef = _auditRecordResult.newId + '-' + _auditRecordResult.docCount;
 
     showToast('✅ PDF uploaded + audit log updated!');
   } catch(driveErr) {
@@ -4517,7 +4534,7 @@ async function uploadAndSend() {
 
     try { localStorage.setItem('bioblue_last_submission', JSON.stringify(d)); } catch(e) {}
     document.getElementById('modalMsg').textContent =
-      `✅ Audit submitted!\n\n📄 PDF + Excel saved to device\n☁️ Files uploaded to Google Drive\n📧 Email notification sent\n${driveLink ? '\nDrive link:\n' + driveLink : ''}`;
+      `✅ Audit submitted!\n\n🆔 Document Ref: ${d.docRef||'—'}\n📄 PDF + Excel saved to device\n☁️ Files uploaded to Google Drive\n📧 Email notification sent\n${driveLink ? '\nDrive link:\n' + driveLink : ''}`;
     document.getElementById('submitModal').classList.add('active');
     showReturnButton();
     showToast('✅ Audit complete!');
@@ -6138,6 +6155,12 @@ async function fetchClientDetails(clientId) {
       if (el && val) el.value = val;
     });
 
+    // Mud map address — auto-fill from Section A address fields (mirrors JSON-restore pattern)
+    const mudmapEl = document.getElementById('mudmapAddress');
+    if (mudmapEl && !mudmapEl.value && fields.siteAddress) {
+      mudmapEl.value = [fields.siteAddress, fields.suburb, fields.postcode].filter(Boolean).join(', ');
+    }
+
     const stateVal = get('State');
     const stateEl  = document.getElementById('state');
     if (stateEl && stateVal) {
@@ -6148,6 +6171,12 @@ async function fetchClientDetails(clientId) {
 
     const nameEl = document.getElementById('bannerClientName');
     if (nameEl) nameEl.textContent = get('Billing Entity') || clientId;
+
+    // Show the next document reference (current count + 1) in the banner
+    const _prevCount = parseInt(get('Audit Doc #')) || 0;
+    const _nextRef = clientId + '-' + (_prevCount + 1);
+    const bannerIdEl = document.getElementById('bannerClientId');
+    if (bannerIdEl) bannerIdEl.textContent = 'Ref: ' + clientId + '  ·  This submission will be ' + _nextRef;
 
     // Hide the retry button once loaded
     const rb = document.getElementById('prefillRetryBtn');
@@ -6317,14 +6346,68 @@ function repairClientRecordsHeaders(wb) {
   console.log('Repaired Client Records headers — added:', missing);
 }
 
+// =====================================================================
+// PEEK AUDIT DOC COUNT — lightweight read-only lookup so the PDF header
+// can show the upcoming document reference BEFORE the real increment+save
+// happens later in updateClientRecordFromAudit. Non-fatal if it fails.
+// =====================================================================
+async function peekAuditDocCount(clientId) {
+  if (!clientId || !gdriveToken) return null;
+  try {
+    const folderRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=name='${GDRIVE_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id)`,
+      { headers: { Authorization: `Bearer ${gdriveToken}` } }
+    );
+    const folderData = await folderRes.json();
+    if (!folderData.files || !folderData.files.length) return null;
+    const rootFolderId = folderData.files[0].id;
+
+    const fileId = await getAdminSheetId(rootFolderId);
+    if (!fileId) return null;
+
+    const dl = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, { headers: { Authorization: `Bearer ${gdriveToken}` } });
+    const ab = await dl.arrayBuffer();
+    const wb = XLSX.read(new Uint8Array(ab), { type: 'array' });
+    const ws = wb.Sheets['Client Records'];
+    if (!ws) return null;
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+    const hdrs = rows[0] || [];
+    const idCol = hdrs.indexOf('Client ID');
+    const docCountCol = hdrs.indexOf('Audit Doc #');
+    const row = rows.slice(1).find(r => r[idCol] === clientId);
+    const prevCount = (row && docCountCol>-1) ? (parseInt(row[docCountCol]) || 0) : 0;
+    return prevCount + 1;
+  } catch(e) {
+    console.warn('peekAuditDocCount failed (non-fatal):', e.message);
+    return null;
+  }
+}
+
+// =====================================================================
+// FIND EXISTING FILE BY NAME — used to overwrite rather than duplicate
+// =====================================================================
+async function findExistingFile(fileName, folderId) {
+  try {
+    const sr = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=name='${fileName.replace(/'/g,"\\'")}' and '${folderId}' in parents and trashed=false&fields=files(id)`,
+      { headers: { Authorization: `Bearer ${gdriveToken}` } }
+    );
+    const sd = await sr.json();
+    return (sd.files && sd.files.length) ? sd.files[0].id : null;
+  } catch(e) {
+    console.warn('findExistingFile check failed:', e.message);
+    return null;
+  }
+}
+
 async function updateClientRecordFromAudit(rootFolderId, clientId) {
-  if (!clientId) return; // No client selected — standalone audit, skip
+  if (!clientId) return null; // No client selected — standalone audit, skip
   try {
     // Find/create admin sheet in AA_App_Admin
     const fileId = await getAdminSheetId(rootFolderId);
     if (!fileId) {
       console.warn('Could not get admin sheet — skipping tick update');
-      return;
+      return null;
     }
     const dl = await fetch(
       `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
@@ -6340,6 +6423,7 @@ async function updateClientRecordFromAudit(rootFolderId, clientId) {
     const idCol        = hdrs.indexOf('Client ID');
     const auditCol     = hdrs.indexOf('Site Audit ✓');
     const customerCol  = hdrs.indexOf('Customer ✓');
+    const docCountCol  = hdrs.indexOf('Audit Doc #');
 
     // Add columns if missing
     if (auditCol === -1)    { hdrs.push('Site Audit ✓');  rows[0] = hdrs; }
@@ -6355,10 +6439,14 @@ async function updateClientRecordFromAudit(rootFolderId, clientId) {
     // Find matching row and tick + write contacts/POD
     let updated = false;
     let rowIdx = -1;
+    let docCount = 0;
     for (let i = 1; i < rows.length; i++) {
       if (rows[i][idCol] === clientId) {
         rows[i][finalAuditCol]    = '✓';
         rows[i][finalCustomerCol] = '✓';
+        const prevCount = docCountCol>-1 ? (parseInt(rows[i][docCountCol]) || 0) : 0;
+        docCount = prevCount + 1;
+        if (docCountCol>-1) rows[i][docCountCol] = docCount;
         rowIdx = i;
         updated = true;
         break;
@@ -6383,7 +6471,7 @@ async function updateClientRecordFromAudit(rootFolderId, clientId) {
 
     if (!updated) {
       console.warn('Client ID not found in records:', clientId);
-      return;
+      return null;
     }
 
     // Save back
@@ -6402,9 +6490,11 @@ async function updateClientRecordFromAudit(rootFolderId, clientId) {
       { method: 'PATCH', headers: { Authorization: `Bearer ${gdriveToken}` }, body: form }
     );
     console.log('✓ Client record updated — Site Audit ✓ + Customer ✓ ticked');
+    return { newId: clientId, docCount };
   } catch(e) {
     console.warn('Could not update client record from audit:', e.message);
     // Non-fatal — audit PDF still uploaded successfully
+    return null;
   }
 }
 

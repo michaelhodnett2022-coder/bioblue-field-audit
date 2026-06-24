@@ -3535,7 +3535,7 @@ async function generatePDF(returnDoc=false, presetData=null) {
     doc.text(doc.splitTextToSize(sn,cW-8)[0],m+3,24);
     if (d.trackpodName) {
       doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(255,255,255);
-      doc.text('Trackpod Name: '+d.trackpodName,m+3,29);
+      doc.text('Site Name (Trackpod): '+d.trackpodName,m+3,29);
     }
     const by=33.5;doc.setFillColor(...ML);doc.rect(m,by,cW,37,'F');
     const bm=m+3,hw=(cW-8)/2;
@@ -4443,7 +4443,7 @@ async function uploadAndSend() {
     const _auditClientFolderId = await getClientFolderFromRecord(folderId, _auditClientId, _auditFolderName);
 
     // Upload PDF into client folder — overwrite existing file of same name, never duplicate
-    const _existingAuditFileId = await findExistingFile(baseName + '.pdf', _auditClientFolderId);
+    const _existingAuditFileId = await findExistingFile('.Audit.pdf', _auditClientFolderId);
     const pdfForm = new FormData();
     let upRes;
     if (_existingAuditFileId) {
@@ -6393,10 +6393,10 @@ async function peekAuditDocCount(clientId) {
 // =====================================================================
 // FIND EXISTING FILE BY NAME — used to overwrite rather than duplicate
 // =====================================================================
-async function findExistingFile(fileName, folderId) {
+async function findExistingFile(suffix, folderId) {
   try {
     const sr = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=name='${fileName.replace(/'/g,"\\'")}' and '${folderId}' in parents and trashed=false&fields=files(id)`,
+      `https://www.googleapis.com/drive/v3/files?q=name contains '${suffix.replace(/'/g,"\\'")}' and '${folderId}' in parents and trashed=false&fields=files(id,name)`,
       { headers: { Authorization: `Bearer ${gdriveToken}` } }
     );
     const sd = await sr.json();

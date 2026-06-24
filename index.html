@@ -1184,6 +1184,7 @@
 <!-- MAIN CONTENT -->
 <div class="main-content">
 <input type="hidden" id="_siteLocationName">
+<input type="hidden" id="_trackpodName">
 <input type="hidden" id="_descriptor">
 <input type="hidden" id="_generatedSiteName">
   <!-- CLIENT BANNER -->
@@ -2780,6 +2781,7 @@ function collectFormData() {
     state: get('state'),
     postcode: get('postcode'),
     _siteLocationName: get('_siteLocationName'),
+    trackpodName:      get('_trackpodName'),
     _descriptor:       get('_descriptor'),
     generatedSiteName: get('_generatedSiteName'),
     siteName:          get('_generatedSiteName'),
@@ -3114,7 +3116,7 @@ function clearCustomerFields() {
   ['siteAddress','suburb','postcode',
    'bizContactName','bizContactRole','bizContactEmail','bizContactPhone',
    'logContactName','logContactRole','logContactEmail','logContactPhone',
-   'podEmail','_siteLocationName','_descriptor','_generatedSiteName',
+   'podEmail','_siteLocationName','_trackpodName','_descriptor','_generatedSiteName',
    'tankVolume','safeFill','tankSerial','tankType','tankTypeOther','dipSystem','dipSystemOther',
    'siteNumber','siteNetwork'].forEach(id => setField(id, ''));
   document.getElementById('state').selectedIndex = 0;
@@ -3524,14 +3526,18 @@ async function generatePDF(returnDoc=false, presetData=null) {
     const dv=d.auditDate||d.formDate||'';
     if(dv){let ds=dv;try{ds=new Date(dv+'T12:00:00').toLocaleDateString('en-AU');}catch(e){}doc.text(ds,pW-m,9,{align:'right'});}
     doc.setDrawColor(...BLUE);doc.setLineWidth(0.4);doc.line(m,11.5,pW-m,11.5);
-    doc.setFillColor(...MC);doc.rect(m,13,cW,14,'F');
+    doc.setFillColor(...MC);doc.rect(m,13,cW,19,'F');
     doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(255,255,255);
     doc.text(formLabel.toUpperCase(),m+3,17.5);
     if (d.docRef) { doc.text(d.docRef,pW-m-3,17.5,{align:'right'}); }
     const sn=(d.generatedSiteName||d.siteName||d.customerName||'').toUpperCase();
-    doc.setFont('helvetica','bold');doc.setFontSize(11);
+    doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(255,255,255);
     doc.text(doc.splitTextToSize(sn,cW-8)[0],m+3,24);
-    const by=28.5;doc.setFillColor(...ML);doc.rect(m,by,cW,37,'F');
+    if (d.trackpodName) {
+      doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(255,255,255);
+      doc.text('Trackpod Name: '+d.trackpodName,m+3,29);
+    }
+    const by=33.5;doc.setFillColor(...ML);doc.rect(m,by,cW,37,'F');
     const bm=m+3,hw=(cW-8)/2;
     const lbl=(t,x,y)=>{doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(...MC);doc.text(t,x,y);};
     const val=(t,x,y)=>{doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...BLK);doc.text((t||'\u2014').toString().substring(0,42),x,y);};
@@ -6137,6 +6143,7 @@ async function fetchClientDetails(clientId) {
       suburb:            get('Suburb'),
       postcode:          get('Postcode'),
       _siteLocationName: get('Site Location Name'),
+      _trackpodName:     get('Trackpod Name'),
       _descriptor:       get('Descriptor'),
       _generatedSiteName:get('Site Name'),
       bizContactName:    get('Business Contact Name') || get('Contact Name'),
@@ -6316,7 +6323,7 @@ function repairClientRecordsHeaders(wb) {
   const ws = wb.Sheets['Client Records'];
   if (!ws) return;
   const CANONICAL = [
-    'Client ID','Billing Entity','Site Name','Site Location Name','Descriptor',
+    'Client ID','Billing Entity','Site Name','Site Location Name','Descriptor','Trackpod Name',
     'Street Address','Suburb','State','Postcode',
     'Business Contact Name','Business Contact Role','Business Contact Email','Business Contact Phone',
     'KDM Name','KDM Role','KDM Email','KDM Phone',
@@ -6537,7 +6544,7 @@ async function getAdminSheetId(rootFolderId) {
 
   // 3. Not found — create a fresh workbook with correct columns
   const headers = [
-    'Client ID','Billing Entity','Site Name','Site Location Name','Descriptor',
+    'Client ID','Billing Entity','Site Name','Site Location Name','Descriptor','Trackpod Name',
     'Street Address','Suburb','State','Postcode',
     'Business Contact Name','Business Contact Role','Business Contact Email','Business Contact Phone',
     'KDM Name','KDM Role','KDM Email','KDM Phone',

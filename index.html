@@ -3551,7 +3551,7 @@ async function generatePDF(returnDoc=false, presetData=null) {
     const addr=[d.siteAddress,d.suburb,d.state,d.postcode].filter(Boolean).join(', ');
     doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...BLK);
     doc.text((addr||'\u2014').substring(0,65),bm,by+26);
-    dv2(by+28.5);lbl('BUSINESS CONTACT',bm,by+31.5);
+    dv2(by+28.5);lbl('SITE CONTACT',bm,by+31.5);
     const bizN=d.bizContactName||d.siteContact||'\u2014';
     doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...BLK);
     doc.text(bizN.substring(0,28),bm,by+35.5);
@@ -4474,7 +4474,7 @@ async function uploadAndSend() {
       showToast('⚠️ Log update failed: ' + logErr.message, 4000);
     }
 
-    // Update client record — tick Site Audit ✓ + Customer ✓
+    // Update client record — tick Site Audit ✓ + set Record Status
     showToast('📊 Updating client record...');
     const _auditRecordResult = await updateClientRecordFromAudit(folderId, _auditClientId);
     if (_auditRecordResult) d.docRef = _auditRecordResult.newId + '-' + _auditRecordResult.docCount;
@@ -6312,7 +6312,7 @@ async function saveClientFolderIdToRecord(parentFolderId, clientId, folderId) {
 }
 
 // =====================================================================
-// UPDATE CLIENT RECORD — tick Site Audit ✓ + Customer ✓
+// UPDATE CLIENT RECORD — tick Site Audit ✓ + set Record Status to Client
 // =====================================================================
 // =====================================================================
 // SELF-HEALING COLUMN REPAIR — patches an existing live spreadsheet
@@ -6336,7 +6336,7 @@ function repairClientRecordsHeaders(wb) {
     'Is Distributor / Reseller','Additional Invoicing Emails','PO Required','PO Delivery Email',
     'BDM Email','Max Vehicle Size','Latest Note',
     'Prospect \u2713','Quote Sent \u2713','Site Admin \u2713','Site Audit \u2713','Pkg Assessment \u2713','Customer \u2713',
-    'Prospect Doc #','Admin Doc #','Audit Doc #','Packaged Doc #','Quote Doc #',
+    'Prospect Doc #','Admin Doc #','Audit Doc #','Packaged Doc #','Quote Doc #','Record Status',
     'Drive Folder ID','Created Date','Created By','Notes Log'
   ];
   const rows = XLSX.utils.sheet_to_json(ws, { header:1 });
@@ -6429,15 +6429,13 @@ async function updateClientRecordFromAudit(rootFolderId, clientId) {
 
     const idCol        = hdrs.indexOf('Client ID');
     const auditCol     = hdrs.indexOf('Site Audit ✓');
-    const customerCol  = hdrs.indexOf('Customer ✓');
     const docCountCol  = hdrs.indexOf('Audit Doc #');
 
     // Add columns if missing
-    if (auditCol === -1)    { hdrs.push('Site Audit ✓');  rows[0] = hdrs; }
-    if (customerCol === -1) { hdrs.push('Customer ✓');    rows[0] = hdrs; }
+    if (auditCol === -1) { hdrs.push('Site Audit ✓'); rows[0] = hdrs; }
 
-    const finalAuditCol    = hdrs.indexOf('Site Audit ✓');
-    const finalCustomerCol = hdrs.indexOf('Customer ✓');
+    const finalAuditCol = hdrs.indexOf('Site Audit ✓');
+    const recordStatusCol = hdrs.indexOf('Record Status');
 
     // Get current audit data for contact write-back
     const auditData = collectFormData ? collectFormData() : {};
@@ -6450,7 +6448,8 @@ async function updateClientRecordFromAudit(rootFolderId, clientId) {
     for (let i = 1; i < rows.length; i++) {
       if (rows[i][idCol] === clientId) {
         rows[i][finalAuditCol]    = '✓';
-        rows[i][finalCustomerCol] = '✓';
+        // Record Status — Audit submission always confirms a real client, regardless of prior state
+        if (recordStatusCol > -1) rows[i][recordStatusCol] = 'Client';
         const prevCount = docCountCol>-1 ? (parseInt(rows[i][docCountCol]) || 0) : 0;
         docCount = prevCount + 1;
         if (docCountCol>-1) rows[i][docCountCol] = docCount;
@@ -6470,6 +6469,8 @@ async function updateClientRecordFromAudit(rootFolderId, clientId) {
       setCol('Logistics Email', auditData.logContactEmail);
       setCol('Logistics Phone', auditData.logContactPhone);
       setCol('POD Email', auditData.podEmail);
+      setCol('BDM Email', auditData.auditorEmail);
+      setCol('Max Vehicle Size', auditData.maxVehicle);
       setCol('Contact Name',   auditData.bizContactName);
       setCol('Contact Title',  auditData.bizContactRole);
       setCol('Contact Mobile', auditData.bizContactPhone);
@@ -6496,7 +6497,7 @@ async function updateClientRecordFromAudit(rootFolderId, clientId) {
       `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`,
       { method: 'PATCH', headers: { Authorization: `Bearer ${gdriveToken}` }, body: form }
     );
-    console.log('✓ Client record updated — Site Audit ✓ + Customer ✓ ticked');
+    console.log('✓ Client record updated — Site Audit ✓ ticked, Record Status set to Client');
     return { newId: clientId, docCount };
   } catch(e) {
     console.warn('Could not update client record from audit:', e.message);
@@ -6557,7 +6558,7 @@ async function getAdminSheetId(rootFolderId) {
     'Is Distributor / Reseller','Additional Invoicing Emails','PO Required','PO Delivery Email',
     'BDM Email','Max Vehicle Size','Latest Note',
     'Prospect \u2713','Quote Sent \u2713','Site Admin \u2713','Site Audit \u2713','Pkg Assessment \u2713','Customer \u2713',
-    'Prospect Doc #','Admin Doc #','Audit Doc #','Packaged Doc #','Quote Doc #',
+    'Prospect Doc #','Admin Doc #','Audit Doc #','Packaged Doc #','Quote Doc #','Record Status',
     'Drive Folder ID','Created Date','Created By','Notes Log'
   ];
   const wb = XLSX.utils.book_new();

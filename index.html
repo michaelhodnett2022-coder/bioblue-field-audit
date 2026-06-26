@@ -1159,6 +1159,7 @@
     </div>
     <div class="header-actions">
       <button class="btn btn-secondary" onclick="clearForm()">🗑️ Clear Form</button>
+      <button class="btn btn-secondary" onclick="loadExistingAudit()">🗂️ Load Existing Audit</button>
       <button class="btn btn-secondary" onclick="loadDraftManual()" id="loadDraftBtn" style="display:none;">📂 Load Draft</button>
       <button class="btn btn-primary" onclick="saveDraft()">💾 Save Draft</button>
     </div>
@@ -4907,174 +4908,7 @@ function cancelEdit() {
 }
 
 function restoreFromJSON(data) {
-  const setVal = (id, val) => {
-    const el = document.getElementById(id);
-    if (el && val !== undefined && val !== null) el.value = val;
-  };
-
-  // Apply audit type first so sections appear
-  if (data.auditType) {
-    const atEl = document.getElementById('auditTypeSelect');
-    if (atEl) { atEl.value = data.auditType; applyAuditType(data.auditType); }
-  }
-
-  // Section A
-  // Handle customer — if it was a new customer, show the naming fields
-  if (data.customerName) {
-    const custEl = document.getElementById('customerSelect');
-    if (custEl) {
-      // Try to find matching customer in list first
-      let found = false;
-      for (let i = 0; i < custEl.options.length; i++) {
-        const siteNum = custEl.options[i].value;
-        if (siteNum && CUSTOMERS[siteNum] && CUSTOMERS[siteNum].name === data.customerName) {
-          custEl.value = siteNum;
-          autoFillCustomer(siteNum);
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        // Was a new customer — restore naming fields
-        const stateForFilter = data.state || '';
-        if (stateForFilter) {
-          document.getElementById('stateFilter').value = stateForFilter;
-          filterCustomersByState(stateForFilter);
-        }
-        custEl.value = 'new';
-        autoFillCustomer('new');
-        // Restore generated name directly
-        const hiddenEl = document.getElementById('customerName');
-        const hiddenEl2 = document.getElementById('customerNameHidden');
-        if (hiddenEl) hiddenEl.value = data.customerName;
-        if (hiddenEl2) hiddenEl2.value = data.customerName;
-        const textEl = document.getElementById('generatedNameText');
-        if (textEl) { textEl.textContent = data.customerName; textEl.style.color='#003466'; textEl.style.fontStyle='normal'; }
-      }
-    }
-  }
-
-  setVal('auditDate', data.auditDate);
-  setVal( data.podEmail);
-  setVal('siteAddress', data.siteAddress);
-  setVal('suburb', data.suburb);
-  setVal('postcode', data.postcode);
-
-  // State dropdown in Section A
-  if (data.state) {
-    const stEl = document.getElementById('state');
-    if (stEl) { for (let i=0;i<stEl.options.length;i++) { if (stEl.options[i].value===data.state) { stEl.selectedIndex=i; break; } } }
-  }
-
-  setVal('siteContact', data.siteContact);
-  setVal('siteContactTitle', data.siteContactTitle);
-  setVal('siteEmail', data.siteEmail);
-  setVal('siteMobile', data.siteMobile);
-
-  // Section B
-  if (data.open24hrs) {
-    document.getElementById('open24hrs').checked = true;
-    toggle24hrs(document.getElementById('open24hrs'));
-  } else {
-    setVal('accessOpen', data.accessOpen);
-    setVal('accessClose', data.accessClose);
-    setVal('accessRestrictions', data.accessRestrictions);
-    updateAccessHours();
-  }
-  if (data.satDelivery) { const el = document.getElementById('satDelivery'); if(el) el.checked = true; }
-  if (data.sunDelivery) { const el = document.getElementById('sunDelivery'); if(el) el.checked = true; }
-  updateWeekendStyle();
-  setVal('maxVehicle', data.maxVehicle);
-  setVal('keyCode', data.keyCode);
-  setVal('inductionDetails', data.inductionDetails);
-
-  // PPE
-  if (data.ppeDetails) {
-    const ppeVals = data.ppeDetails.split(', ');
-    document.querySelectorAll('input[name="ppe"]').forEach(cb => {
-      cb.checked = ppeVals.some(v => v === cb.value || v.startsWith('Other:') && cb.value === 'Other');
-    });
-    updatePPE();
-    if (ppeVals.some(v => v.startsWith('Other:'))) {
-      const otherText = ppeVals.find(v => v.startsWith('Other:'))?.replace('Other: ','') || '';
-      setVal('ppeOtherText', otherText);
-      document.getElementById('ppeOtherField').style.display = 'block';
-    }
-  }
-
-  // Section C
-  setVal('tankId', data.tankId);
-  setVal('tankSerial', data.tankSerial);
-  if (data.tankOwner) { const el=document.getElementById('tankOwner'); for(let i=0;i<el.options.length;i++){if(el.options[i].value===data.tankOwner){el.selectedIndex=i;break;}} }
-  if (data.tankType) {
-    const ttEl = document.getElementById('tankType');
-    let matched = false;
-    for (let i=0;i<ttEl.options.length;i++) { if (ttEl.options[i].value===data.tankType) { ttEl.selectedIndex=i; matched=true; break; } }
-    if (!matched && data.tankType.startsWith('Other:')) { ttEl.value='Other'; setVal('tankTypeOther', data.tankType.replace('Other: ','')); document.getElementById('tankTypeOther').style.display='block'; }
-  }
-  if (data.tankVolume) {
-    const vs = document.getElementById('tankVolumeSelect');
-    const volOptions = ['1000','2500','3000','5000','10000','20000'];
-    if (volOptions.includes(data.tankVolume)) { vs.value=data.tankVolume; document.getElementById('tankVolume').style.display='none'; document.getElementById('tankVolume').value=data.tankVolume; }
-    else { vs.value='other'; document.getElementById('tankVolume').style.display='block'; setVal('tankVolume',data.tankVolume); }
-  }
-  setVal('safeFill', data.safeFill);
-  setVal('currentLevel', data.currentLevel);
-  if (data.fillConnType) { const el=document.getElementById('fillConnType'); for(let i=0;i<el.options.length;i++){if(el.options[i].value===data.fillConnType){el.selectedIndex=i;break;}} }
-  if (data.fillConnSize) { const el=document.getElementById('fillConnSize'); for(let i=0;i<el.options.length;i++){if(el.options[i].value===data.fillConnSize){el.selectedIndex=i;break;}} }
-  if (data.dipSystem) {
-    const ds = document.getElementById('dipSystem');
-    let matched = false;
-    for (let i=0;i<ds.options.length;i++) { if (ds.options[i].value===data.dipSystem) { ds.selectedIndex=i; matched=true; break; } }
-    if (!matched && data.dipSystem.startsWith('Other:')) { ds.value='Other'; setVal('dipSystemOther', data.dipSystem.replace('Other: ','')); document.getElementById('dipSystemOther').style.display='block'; }
-  }
-  if (data.tridentMonitor) { const el=document.getElementById('tridentMonitor'); for(let i=0;i<el.options.length;i++){if(el.options[i].value===data.tridentMonitor){el.selectedIndex=i;break;}} }
-
-  // Section D
-  setVal('generalAccessNotes', data.generalAccessNotes);
-  setVal('tankLocationNotes', data.tankLocationNotes);
-  setVal('correctiveActions', data.correctiveActions);
-
-  // Photos checkboxes
-  if (data.photoGateDone) document.getElementById('photoGateDone').checked = true;
-  if (data.photoTankDone) document.getElementById('photoTankDone').checked = true;
-
-  // Auditor
-  if (data.auditorName) { setVal('auditorName', data.auditorName); autoFillAuditor(data.auditorName); }
-  setVal('auditorTitle', data.auditorTitle);
-  setVal('auditorEmail', data.auditorEmail);
-  setVal('auditorMobile', data.auditorMobile);
-
-  // Site rep
-  setVal('repName', data.repName);
-  setVal('repTitle', data.repTitle);
-  setVal('repEmail', data.repEmail);
-  setVal('repMobile', data.repMobile);
-
-  // Mud map address
-  setVal('mudmapAddress', data.siteAddress ? [data.siteAddress, data.suburb, data.postcode].filter(Boolean).join(', ') : '');
-
-  // Y/N answers — restore last
-  if (data.ynValues) {
-    setTimeout(() => {
-      for (const [id, val] of Object.entries(data.ynValues)) {
-        const q = Object.values(ynQuestions).flat().find(q => q.id === id);
-        if (q) {
-          const grp = Object.entries(ynQuestions).find(([g,qs]) => qs.some(q2=>q2.id===id))?.[0];
-          if (grp) setYN(id, val, grp, q.triggerField||'');
-        }
-      }
-      updateProgress();
-      updateComplianceBanner();
-      updateAuditResults();
-      checkC2Compliance();
-      checkCorrectiveActionsRequired();
-      updateFieldStates();
-    }, 300);
-  } else {
-    updateProgress();
-    updateFieldStates();
-  }
+  restoreAuditFormFields(data);
 }
 
 // =====================================================================
@@ -5251,6 +5085,183 @@ async function saveDraft() {
   }
 }
 
+// =====================================================================
+// SHARED FIELD RESTORATION — used by both the draft system and the
+// existing-submission recall picker, so both stay correct together
+// =====================================================================
+function restoreAuditFormFields(data) {
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined && val !== null && val !== '') el.value = val; };
+
+  // Customer identity — needed when restoring a PAST SUBMISSION that may be
+  // for a different client than whatever's currently loaded via Field Tools
+  setVal('customerName', data.customerName);
+
+  // Section A — site & contacts (intentionally NOT restoring _siteLocationName,
+  // _trackpodName, _descriptor, _generatedSiteName — those are locked metadata
+  // fed fresh from Prospect via fetchClientDetails when a client is loaded;
+  // a saved snapshot's copy could be stale if Prospect was edited since)
+  setVal('auditDate', data.auditDate);
+  setVal('siteAddress', data.siteAddress);
+  setVal('suburb', data.suburb);
+  setVal('postcode', data.postcode);
+  if (data.state) {
+    const stateEl = document.getElementById('state');
+    if (stateEl) for (let i=0;i<stateEl.options.length;i++) if (stateEl.options[i].value===data.state) { stateEl.selectedIndex=i; break; }
+  }
+  setVal('bizContactName', data.bizContactName);
+  setVal('bizContactRole', data.bizContactRole);
+  setVal('bizContactEmail', data.bizContactEmail);
+  setVal('bizContactPhone', data.bizContactPhone);
+  setVal('logContactName', data.logContactName);
+  setVal('logContactRole', data.logContactRole);
+  setVal('logContactEmail', data.logContactEmail);
+  setVal('logContactPhone', data.logContactPhone);
+  setVal('podEmail', data.podEmail);
+  setVal('siteNumber', data.siteNumber);
+  setVal('siteNetwork', data.siteNetwork);
+
+  // Section B — access & safety
+  setVal('accessRestrictions', data.accessRestrictions);
+  if (data.accessOpen) setVal('accessOpen', data.accessOpen);
+  if (data.accessClose) setVal('accessClose', data.accessClose);
+  const open24El = document.getElementById('open24hrs');
+  if (open24El) {
+    open24El.checked = !!data.open24hrs;
+    toggle24hrs(open24El);
+  }
+  const satEl = document.getElementById('satDelivery');
+  const sunEl = document.getElementById('sunDelivery');
+  if (satEl) satEl.checked = !!data.satDelivery;
+  if (sunEl) sunEl.checked = !!data.sunDelivery;
+  if (typeof updateAccessHours === 'function') updateAccessHours();
+  if (typeof updateWeekendStyle === 'function') updateWeekendStyle();
+  setVal('maxVehicle', data.maxVehicle);
+  setVal('keyCode', data.keyCode);
+  setVal('inductionDetails', data.inductionDetails);
+
+  // PPE — restore hidden combined field directly (data integrity), then
+  // best-effort re-check the individual checkboxes for a faithful display
+  setVal('ppeDetails', data.ppeDetails);
+  if (data.ppeDetails) {
+    const parts = data.ppeDetails.split(', ');
+    document.querySelectorAll('input[name="ppe"]').forEach(cb => {
+      if (cb.value === 'Other') {
+        const otherPart = parts.find(p => p.startsWith('Other'));
+        if (otherPart) {
+          cb.checked = true;
+          const otherField = document.getElementById('ppeOtherField');
+          const otherText = document.getElementById('ppeOtherText');
+          if (otherField) otherField.style.display = 'block';
+          if (otherText) otherText.value = otherPart.replace(/^Other:\s*/, '').replace(/^Other$/, '');
+        }
+      } else if (parts.includes(cb.value)) {
+        cb.checked = true;
+      }
+    });
+  }
+
+  // Section C — tank details, with "Other" combo handling for tankType
+  setVal('tankId', data.tankId);
+  setVal('tankSerial', data.tankSerial);
+  setVal('tankOwner', data.tankOwner);
+  if (data.tankType) {
+    const tankTypeEl = document.getElementById('tankType');
+    if (data.tankType.startsWith('Other')) {
+      if (tankTypeEl) tankTypeEl.value = 'Other';
+      toggleTankTypeOther('Other');
+      const otherEl = document.getElementById('tankTypeOther');
+      if (otherEl) otherEl.value = data.tankType.replace(/^Other:\s*/, '').replace(/^Other$/, '');
+    } else if (tankTypeEl) {
+      tankTypeEl.value = data.tankType;
+    }
+  }
+  if (data.tankVolume) {
+    const vs = document.getElementById('tankVolumeSelect');
+    const volOptions = ['1000','2500','3000','5000','10000','20000'];
+    if (vs) {
+      if (volOptions.includes(data.tankVolume)) {
+        vs.value = data.tankVolume;
+        const tv = document.getElementById('tankVolume');
+        if (tv) { tv.style.display = 'none'; tv.value = data.tankVolume; }
+      } else {
+        vs.value = 'other';
+        const tv = document.getElementById('tankVolume');
+        if (tv) { tv.style.display = 'block'; tv.value = data.tankVolume; }
+      }
+    } else {
+      setVal('tankVolume', data.tankVolume);
+    }
+  }
+  setVal('safeFill', data.safeFill);
+  setVal('currentLevel', data.currentLevel);
+  setVal('fillConnType', data.fillConnType);
+  setVal('fillConnSize', data.fillConnSize);
+  if (data.dipSystem) {
+    const dipEl = document.getElementById('dipSystem');
+    if (data.dipSystem.startsWith('Other')) {
+      if (dipEl) dipEl.value = 'Other';
+      const otherEl = document.getElementById('dipSystemOther');
+      if (otherEl) { otherEl.style.display = 'block'; otherEl.value = data.dipSystem.replace(/^Other:\s*/, '').replace(/^Other$/, ''); }
+    } else if (dipEl) {
+      dipEl.value = data.dipSystem;
+    }
+  }
+  setVal('tridentMonitor', data.tridentMonitor);
+
+  // Section D — notes
+  setVal('generalAccessNotes', data.generalAccessNotes);
+  setVal('tankLocationNotes', data.tankLocationNotes);
+  setVal('correctiveActions', data.correctiveActions);
+
+  // Photo checkboxes (whether the gate/tank photo steps were completed —
+  // does not restore the photos themselves, which are deliberately excluded)
+  const pgEl = document.getElementById('photoGateDone');
+  const ptEl = document.getElementById('photoTankDone');
+  if (pgEl) pgEl.checked = !!data.photoGateDone;
+  if (ptEl) ptEl.checked = !!data.photoTankDone;
+
+  // Mud map address — sync from restored site address (the drawing itself
+  // is NOT recoverable, see banked limitation; this just re-fills the address)
+  const mmEl = document.getElementById('mudmapAddress');
+  if (mmEl && data.siteAddress) mmEl.value = [data.siteAddress, data.suburb, data.postcode].filter(Boolean).join(', ');
+
+  // Section E/F — auditor, rep, email
+  setVal('auditorName', data.auditorName);
+  setVal('auditorTitle', data.auditorTitle);
+  setVal('auditorEmail', data.auditorEmail);
+  setVal('auditorMobile', data.auditorMobile);
+  setVal('repName', data.repName);
+  setVal('repTitle', data.repTitle);
+  setVal('repEmail', data.repEmail);
+  setVal('repMobile', data.repMobile);
+  setVal('emailTo', data.emailTo);
+  setVal('emailCc', data.emailCc);
+
+  // Audit type — triggers section visibility
+  if (data.auditType) {
+    const atEl = document.getElementById('auditTypeSelect');
+    if (atEl) { atEl.value = data.auditType; applyAuditType(data.auditType); }
+  }
+
+  // Y/N questions — restore via existing question-lookup pattern
+  if (data.ynValues) {
+    for (const [id, val] of Object.entries(data.ynValues)) {
+      const q = Object.values(ynQuestions).flat().find(q => q.id === id);
+      if (q) {
+        const grp = Object.entries(ynQuestions).find(([g,qs]) => qs.includes(q))?.[0];
+        if (grp) setYN(id, val, grp, q.triggerField||'');
+      }
+    }
+  }
+
+  updateProgress();
+  if (typeof updateComplianceBanner === 'function') updateComplianceBanner();
+  if (typeof updateAuditResults === 'function') updateAuditResults();
+  if (typeof checkC2Compliance === 'function') checkC2Compliance();
+  if (typeof checkCorrectiveActionsRequired === 'function') checkCorrectiveActionsRequired();
+  if (typeof updateFieldStates === 'function') updateFieldStates();
+}
+
 async function loadDraft() {
   if (!_draftFileId) { showToast('⚠️ No draft to restore'); return; }
   showToast('⏳ Restoring draft...');
@@ -5259,139 +5270,9 @@ async function loadDraft() {
       { headers: { Authorization: `Bearer ${gdriveToken}` } });
     if (!res.ok) throw new Error('Download failed');
     const data = await res.json();
-    const setVal = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined && val !== null && val !== '') el.value = val; };
 
-    // Section A — site & contacts (intentionally NOT restoring _siteLocationName,
-    // _trackpodName, _descriptor, _generatedSiteName — those are locked metadata
-    // fed fresh from Prospect via fetchClientDetails, which already ran first;
-    // the draft's copy could be stale if Prospect was edited since this draft was saved)
-    setVal('auditDate', data.auditDate);
-    setVal('siteAddress', data.siteAddress);
-    setVal('suburb', data.suburb);
-    setVal('postcode', data.postcode);
-    if (data.state) {
-      const stateEl = document.getElementById('state');
-      if (stateEl) for (let i=0;i<stateEl.options.length;i++) if (stateEl.options[i].value===data.state) { stateEl.selectedIndex=i; break; }
-    }
-    setVal('bizContactName', data.bizContactName);
-    setVal('bizContactRole', data.bizContactRole);
-    setVal('bizContactEmail', data.bizContactEmail);
-    setVal('bizContactPhone', data.bizContactPhone);
-    setVal('logContactName', data.logContactName);
-    setVal('logContactRole', data.logContactRole);
-    setVal('logContactEmail', data.logContactEmail);
-    setVal('logContactPhone', data.logContactPhone);
-    setVal('podEmail', data.podEmail);
-    setVal('siteNumber', data.siteNumber);
-    setVal('siteNetwork', data.siteNetwork);
+    restoreAuditFormFields(data);
 
-    // Section B — access & safety
-    setVal('accessRestrictions', data.accessRestrictions);
-    if (data.accessOpen) setVal('accessOpen', data.accessOpen);
-    if (data.accessClose) setVal('accessClose', data.accessClose);
-    const open24El = document.getElementById('open24hrs');
-    if (open24El) {
-      open24El.checked = !!data.open24hrs;
-      toggle24hrs(open24El);
-    }
-    const satEl = document.getElementById('satDelivery');
-    const sunEl = document.getElementById('sunDelivery');
-    if (satEl) satEl.checked = !!data.satDelivery;
-    if (sunEl) sunEl.checked = !!data.sunDelivery;
-    if (typeof updateAccessHours === 'function') updateAccessHours();
-    if (typeof updateWeekendStyle === 'function') updateWeekendStyle();
-    setVal('maxVehicle', data.maxVehicle);
-    setVal('keyCode', data.keyCode);
-    setVal('inductionDetails', data.inductionDetails);
-
-    // PPE — restore hidden combined field directly (data integrity), then
-    // best-effort re-check the individual checkboxes for a faithful display
-    setVal('ppeDetails', data.ppeDetails);
-    if (data.ppeDetails) {
-      const parts = data.ppeDetails.split(', ');
-      document.querySelectorAll('input[name="ppe"]').forEach(cb => {
-        if (cb.value === 'Other') {
-          const otherPart = parts.find(p => p.startsWith('Other'));
-          if (otherPart) {
-            cb.checked = true;
-            const otherField = document.getElementById('ppeOtherField');
-            const otherText = document.getElementById('ppeOtherText');
-            if (otherField) otherField.style.display = 'block';
-            if (otherText) otherText.value = otherPart.replace(/^Other:\s*/, '').replace(/^Other$/, '');
-          }
-        } else if (parts.includes(cb.value)) {
-          cb.checked = true;
-        }
-      });
-    }
-
-    // Section C — tank details, with "Other" combo handling for tankType
-    setVal('tankId', data.tankId);
-    setVal('tankSerial', data.tankSerial);
-    setVal('tankOwner', data.tankOwner);
-    if (data.tankType) {
-      const tankTypeEl = document.getElementById('tankType');
-      if (data.tankType.startsWith('Other')) {
-        if (tankTypeEl) tankTypeEl.value = 'Other';
-        toggleTankTypeOther('Other');
-        const otherEl = document.getElementById('tankTypeOther');
-        if (otherEl) otherEl.value = data.tankType.replace(/^Other:\s*/, '').replace(/^Other$/, '');
-      } else if (tankTypeEl) {
-        tankTypeEl.value = data.tankType;
-      }
-    }
-    setVal('tankVolume', data.tankVolume);
-    setVal('safeFill', data.safeFill);
-    setVal('currentLevel', data.currentLevel);
-    setVal('fillConnType', data.fillConnType);
-    setVal('fillConnSize', data.fillConnSize);
-    if (data.dipSystem) {
-      const dipEl = document.getElementById('dipSystem');
-      if (data.dipSystem.startsWith('Other')) {
-        if (dipEl) dipEl.value = 'Other';
-        const otherEl = document.getElementById('dipSystemOther');
-        if (otherEl) { otherEl.style.display = 'block'; otherEl.value = data.dipSystem.replace(/^Other:\s*/, '').replace(/^Other$/, ''); }
-      } else if (dipEl) {
-        dipEl.value = data.dipSystem;
-      }
-    }
-    setVal('tridentMonitor', data.tridentMonitor);
-
-    // Section D — notes
-    setVal('generalAccessNotes', data.generalAccessNotes);
-    setVal('tankLocationNotes', data.tankLocationNotes);
-    setVal('correctiveActions', data.correctiveActions);
-
-    // Section E/F — auditor, rep, email
-    setVal('auditorName', data.auditorName);
-    setVal('auditorTitle', data.auditorTitle);
-    setVal('auditorEmail', data.auditorEmail);
-    setVal('auditorMobile', data.auditorMobile);
-    setVal('repName', data.repName);
-    setVal('repTitle', data.repTitle);
-    setVal('repEmail', data.repEmail);
-    setVal('repMobile', data.repMobile);
-    setVal('emailTo', data.emailTo);
-    setVal('emailCc', data.emailCc);
-
-    // Audit type — triggers section visibility
-    if (data.auditType) {
-      const atEl = document.getElementById('auditTypeSelect');
-      if (atEl) { atEl.value = data.auditType; applyAuditType(data.auditType); }
-    }
-
-    // Y/N questions — restore via existing question-lookup pattern
-    if (data.ynValues) {
-      for (const [id, val] of Object.entries(data.ynValues)) {
-        const q = Object.values(ynQuestions).flat().find(q => q.id === id);
-        if (q) {
-          const grp = Object.entries(ynQuestions).find(([g,qs]) => qs.includes(q))?.[0];
-          if (grp) setYN(id, val, grp, q.triggerField||'');
-        }
-      }
-    }
-
-    updateProgress();
     const banner = document.getElementById('draftBanner');
     if (banner) {
       banner.style.background = 'rgba(0,135,90,0.1)';

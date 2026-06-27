@@ -1188,37 +1188,7 @@
 <input type="hidden" id="_trackpodName">
 <input type="hidden" id="_descriptor">
 <input type="hidden" id="_generatedSiteName">
-  <!-- CLIENT BANNER -->
-  <div id="clientBanner" style="display:none;align-items:center;gap:12px;
-      background:#e8f2fb;border:1.5px solid #003466;
-      border-radius:10px;padding:12px 16px;margin:16px 16px 0;flex-wrap:wrap;">
-    <div style="font-size:20px;">🏢</div>
-    <div style="flex:1;">
-      <div style="font-size:11px;font-weight:700;color:#003466;text-transform:uppercase;letter-spacing:0.5px;">Active Client</div>
-      <div style="font-size:14px;font-weight:700;color:#1f2937;" id="bannerClientName">Tap below to load full details</div>
-      <div style="font-size:11px;color:#6b7280;" id="bannerClientId"></div>
-    </div>
-    <a href="https://michaelhodnett2022-coder.github.io/bioblue-field-tools" style="font-size:11px;font-weight:600;color:#003466;text-decoration:none;
-        background:white;border:1.5px solid #003466;border-radius:6px;padding:5px 10px;">
-      Change Client
-    </a>
-  </div>
-  <div id="noClientBanner" style="display:none;align-items:center;gap:12px;
-      background:#fff7ed;border:2px solid #f59e0b;
-      border-radius:10px;padding:14px 16px;margin:16px 16px 0;">
-    <div style="font-size:24px;">⚠️</div>
-    <div style="flex:1;">
-      <div style="font-size:13px;font-weight:700;color:#92400e;">No client selected</div>
-      <div style="font-size:12px;color:#78350f;margin-top:2px;line-height:1.4;">For best results, select or create a client in Field Tools before starting an audit.<br>Or continue below to complete manually.</div>
-    </div>
-    <a href="https://michaelhodnett2022-coder.github.io/bioblue-field-tools" style="font-size:11px;font-weight:600;color:#92400e;text-decoration:none;
-        background:white;border:1.5px solid #f59e0b;border-radius:6px;padding:6px 12px;white-space:nowrap;flex-shrink:0;">
-      ← Field Tools
-    </a>
-  </div>
-
-
-  <!-- ══ START HERE HERO ══════════════════════════════════════ -->
+  <!-- ══ GETTING STARTED — STEP 1 (CLIENT) + STEP 2 (AUDIT TYPE) ══ -->
   <div id="startHero" style="
     background: linear-gradient(135deg, var(--blue-dark) 0%, #0066cc 100%);
     border-radius: 16px;
@@ -1232,50 +1202,72 @@
     <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.06);pointer-events:none;"></div>
     <div style="position:absolute;bottom:-20px;right:30px;width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,0.04);pointer-events:none;"></div>
 
-    <!-- Step label -->
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
-      <div style="background:#e8192c;border-radius:20px;padding:4px 12px;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(232,25,44,0.4);">
-        <span style="color:white;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">▶ START HERE</span>
+    <!-- STEP 1: LOAD CLIENT -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <div style="width:24px;height:24px;border-radius:50%;background:#e8192c;border:2px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(232,25,44,0.4);">
+        <span style="color:white;font-size:13px;font-weight:700;">1</span>
       </div>
-      <span style="color:rgba(255,255,255,0.5);font-size:11px;">Choose audit type to begin</span>
+      <label style="color:white;font-size:13px;font-weight:700;margin:0;letter-spacing:0.3px;text-transform:uppercase;">Load Your Client</label>
     </div>
 
-    <!-- Audit Type Selector -->
-    <div style="margin-bottom:6px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-        <div style="width:24px;height:24px;border-radius:50%;background:#e8192c;border:2px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-          <span style="color:white;font-size:12px;font-weight:700;">▶</span>
+    <div id="clientBanner" style="display:none;align-items:center;gap:12px;
+        background:rgba(255,255,255,0.95);
+        border-radius:10px;padding:12px 14px;margin-bottom:18px;flex-wrap:wrap;">
+      <div style="font-size:20px;">🏢</div>
+      <div style="flex:1;">
+        <div style="font-size:10px;font-weight:700;color:#003466;text-transform:uppercase;letter-spacing:0.5px;">Active Client</div>
+        <div style="font-size:14px;font-weight:700;color:#1f2937;" id="bannerClientName">Tap below to load full details</div>
+        <div style="font-size:11px;color:#6b7280;" id="bannerClientId"></div>
+      </div>
+      <a href="https://michaelhodnett2022-coder.github.io/bioblue-field-tools" style="font-size:11px;font-weight:600;color:#003466;text-decoration:none;
+          background:white;border:1.5px solid #003466;border-radius:6px;padding:5px 10px;">
+        Change Client
+      </a>
+    </div>
+    <div id="noClientBanner" style="display:none;align-items:center;gap:12px;
+        background:rgba(255,255,255,0.95);border:2px solid #f59e0b;
+        border-radius:10px;padding:14px 14px;margin-bottom:18px;">
+      <div style="font-size:24px;">⚠️</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;color:#92400e;">No client selected</div>
+        <div style="font-size:12px;color:#78350f;margin-top:2px;line-height:1.4;">Select or create a client in Field Tools before starting an audit.</div>
+      </div>
+      <a href="https://michaelhodnett2022-coder.github.io/bioblue-field-tools" style="font-size:11px;font-weight:600;color:#92400e;text-decoration:none;
+          background:white;border:1.5px solid #f59e0b;border-radius:6px;padding:6px 12px;white-space:nowrap;flex-shrink:0;">
+        ← Field Tools
+      </a>
+    </div>
+
+    <div style="border-top:1px solid rgba(255,255,255,0.15);margin-bottom:18px;"></div>
+
+    <!-- STEP 2: SELECT AUDIT TYPE -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <div style="width:24px;height:24px;border-radius:50%;background:#e8192c;border:2px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(232,25,44,0.4);">
+        <span style="color:white;font-size:13px;font-weight:700;">2</span>
+      </div>
+      <label style="color:white;font-size:13px;font-weight:700;margin:0;letter-spacing:0.3px;text-transform:uppercase;">Select Audit Type</label>
+    </div>
+
+    <input type="hidden" id="auditTypeSelect" value="">
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <label class="audit-type-option" style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.92);border:2px solid transparent;border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color 0.15s;">
+        <input type="radio" name="auditTypeRadio" value="full" onchange="setAuditTypeRadio('full')" style="width:18px;height:18px;accent-color:#003466;flex-shrink:0;cursor:pointer;">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:#1a1a2e;">Full Onsite Audit</div>
+          <div style="font-size:11.5px;color:#5b6470;margin-top:1px;">Complete physical site visit — all sections</div>
         </div>
-        <label style="color:white;font-size:13px;font-weight:700;margin:0;letter-spacing:0.3px;">Select Audit Type</label>
-      </div>
-      <select id="auditTypeSelect" onchange="applyAuditType(this.value)" style="
-        width:100%;padding:12px 14px;border-radius:10px;
-        border:2px solid rgba(255,255,255,0.3);
-        background:rgba(255,255,255,0.92);
-        color:#1a1a2e;font-size:15px;font-weight:600;
-        -webkit-appearance:none;appearance:none;
-        background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%228%22 viewBox=%220 0 12 8%22><path d=%22M1 1l5 5 5-5%22 stroke=%22%23333%22 stroke-width=%222%22 fill=%22none%22/></svg>');
-        background-repeat:no-repeat;background-position:right 14px center;
-      ">
-        <option value="">— Select audit type first —</option>
-        <option value="full">1) Full Onsite Audit</option>
-        <option value="offsite">2) Interim Desktop Audit (Logistics only)</option>
-      </select>
-      <p style="color:rgba(255,255,255,0.6);font-size:11px;margin:8px 0 0;line-height:1.4;">
-        Client details load automatically from the client you selected in Field Tools. To audit a new site, create it in the Prospect / Client form first.
-      </p>
+      </label>
+      <label class="audit-type-option" style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.92);border:2px solid transparent;border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color 0.15s;">
+        <input type="radio" name="auditTypeRadio" value="offsite" onchange="setAuditTypeRadio('offsite')" style="width:18px;height:18px;accent-color:#003466;flex-shrink:0;cursor:pointer;">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:#1a1a2e;">Interim Desktop Audit</div>
+          <div style="font-size:11.5px;color:#5b6470;margin-top:1px;">Logistics only — no site visit required</div>
+        </div>
+      </label>
     </div>
-
-    <!-- TEST MODE -->
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding-top:14px;margin-top:14px;border-top:1px solid rgba(255,255,255,0.15);">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="background:#1a1a2e;color:#0ff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;letter-spacing:1px;">🧪 TEST MODE</span>
-      </div>
-      <div style="display:flex;gap:8px;">
-        <button class="test-btn" onclick="fillTestData()">⚡ Fill Test Data</button>
-        <button class="test-btn" style="background:white;color:var(--red);border:2px solid var(--red);" onclick="confirmClearForm()">🗑️ Clear Form</button>
-      </div>
-    </div>
+    <p style="color:rgba(255,255,255,0.6);font-size:11px;margin:10px 0 0;line-height:1.4;">
+      Client details load automatically once Step 1 is complete. To audit a new site, create it in the Prospect / Client form first.
+    </p>
   </div>
 
   <!-- SECTION A: SITE DETAILS -->
@@ -2877,6 +2869,17 @@ function exportExcel(silent=false) {
 // =====================================================================
 const CUSTOMERS = {};  // Client data migrated to spreadsheet — forms now pre-fill via Field Tools client selector;
 
+function setAuditTypeRadio(value) {
+  const hidden = document.getElementById('auditTypeSelect');
+  if (hidden) hidden.value = value;
+  document.querySelectorAll('input[name="auditTypeRadio"]').forEach(r => {
+    r.checked = (r.value === value);
+    const card = r.closest('.audit-type-option');
+    if (card) card.style.borderColor = r.checked ? '#e8192c' : 'transparent';
+  });
+  applyAuditType(value);
+}
+
 function applyAuditType(type) {
   // Sections visible for each audit type
   // Full: all sections
@@ -3925,171 +3928,6 @@ async function generatePDF(returnDoc=false, presetData=null) {
   const fname = ((d.generatedSiteName||d.siteName||d.customerName||'Draft').replace(/[^a-zA-Z0-9\s]/g,'').trim().replace(/\s+/g,'_'))+'.Audit.pdf';
   doc.save(fname);
   showToast('📄 PDF downloaded!');
-}
-
-// =====================================================================
-// TEST DATA FILL
-// =====================================================================
-async function fillTestData() {
-  const auditType = document.getElementById('auditTypeSelect')?.value || '';
-  if (!auditType) {
-    showToast('⚠️ Please select an audit type first');
-    return;
-  }
-  const isOffsite = auditType === 'offsite';
-  showToast(isOffsite ? '⚡ Filling Interim Offsite test data...' : '⚡ Starting full test fill...');
-  await new Promise(r => setTimeout(r, 100));
-  // Reset Y/N values directly without calling clearForm
-  document.querySelectorAll('.yn-item').forEach(el => el.className = 'yn-item');
-  document.querySelectorAll('.yn-btn').forEach(el => el.className = 'yn-btn');
-  for (const k in ynValues) delete ynValues[k];
-  await new Promise(r => setTimeout(r, 50));
-
-  // Section A — fill new customer naming fields
-  document.getElementById('customerSelect').value = 'new';
-  document.getElementById('newCustomerField').style.display = 'block';
-  // Fill structured naming fields
-  document.getElementById('newBillingEntity').value = 'BioBlue Test';
-  document.getElementById('newSiteName').value = 'Testville';
-  document.getElementById('newDescriptor').value = 'Depot';
-  document.getElementById('newSuburb').value = 'TESTVILLE';
-  const newStateEl = document.getElementById('newState');
-  for (let i = 0; i < newStateEl.options.length; i++) {
-    if (newStateEl.options[i].value === 'WA') { newStateEl.selectedIndex = i; break; }
-  }
-  buildCustomerName(); // generates locked name
-  // Manually fill address details
-  document.getElementById('siteAddress').value = '123 Test Street';
-  document.getElementById('suburb').value = 'TESTVILLE';
-  const stateEl = document.getElementById('state');
-  for (let i = 0; i < stateEl.options.length; i++) {
-    if (stateEl.options[i].value === 'WA') { stateEl.selectedIndex = i; break; }
-  }
-  document.getElementById('postcode').value = '6000';
-  document.getElementById('siteContact').value = 'Test Contact';
-  document.getElementById('siteMobile').value = '0400 000 000';
-  document.getElementById('siteEmail').value = 'test@vivaenergy.com.au';
-  document.getElementById('siteContactTitle').value = 'Site Manager';
-  syncMudmapAddress();
-
-  // Date
-  document.getElementById('auditDate').value = new Date().toISOString().split('T')[0];
-
-  // Access hours
-  document.getElementById('accessOpen').value = '06:00';
-  document.getElementById('accessClose').value = '22:00';
-  updateAccessHours();
-
-  // Max vehicle
-  document.getElementById('maxVehicle').value = 'B-Double Trailer';
-
-  // Section B — answer all Y/N
-  // Questions for all modes (sections 1 & 2 = B1+B2+B3)
-  const answersCommon = {
-    truckAccess: 'Y', overheadWires: 'N', manoeuvre: 'Y',
-    noReverse: 'Y', parkingMarked: 'Y', gateAccess: 'Y',
-    siteInduction: 'Y', pedestrianAccess: 'Y', hazardFree: 'Y',
-    lighting: 'Y', safetyCones: 'Y', tankVents: 'Y', ppeRequired: 'Y',
-    spillContain: 'Y', awayFromDrains: 'Y', drainCovers: 'Y', spillKit: 'Y',
-  };
-  // Questions only for Full Onsite (sections 4, 5, 6 = C1+C2+F1)
-  const answersFullOnly = {
-    fillCondition: 'Y', driverAccess: 'Y', highAccess: 'NA',
-    fillLabelled: 'Y', safeFillMarked: 'Y', dipLabelled: 'Y', levelAccurate: 'Y',
-    dedicatedTank: 'Y', tankLabelled: 'Y', compatMaterials: 'Y',
-    noIncompat: 'N', noLeak: 'Y', protectedTemp: 'Y', tankCleaned: 'NA',
-    sealedEquip: 'Y', nozzleClean: 'Y', lidSealed: 'Y',
-    ventSystem: 'Y', ventCondition: 'Y', fillClean: 'Y', dustCap: 'Y',
-    photoGate: 'Y', photoTank: 'Y', nonCompComm: 'Y',
-  };
-  const testAnswers = isOffsite ? answersCommon : { ...answersCommon, ...answersFullOnly };
-
-  // Bulk set Y/N answers using lightweight setter
-  Object.entries(testAnswers).forEach(([id, val]) => {
-    try {
-      ynValues[id] = val;
-      const item = document.getElementById('ynitem-' + id);
-      if (!item) { console.warn('Missing ynitem:', id); return; }
-      const q = Object.values(ynQuestions).flat().find(q => q.id === id);
-      const reverse = q?.reverseColor || false;
-      const neutral = q?.scoreNeutral || false;
-      const solid = q?.solidColor || false;
-      item.classList.remove('yes','no','na','neutral','yes-soft','no-soft');
-      if (val === 'NA') item.classList.add('na');
-      else if (neutral && !solid) {
-        if (val === 'Y') item.classList.add(reverse ? 'no-soft' : 'yes-soft');
-        else if (val === 'N') item.classList.add(reverse ? 'yes-soft' : 'no-soft');
-      } else {
-        if (val === 'Y') item.classList.add(reverse ? 'no' : 'yes');
-        else if (val === 'N') item.classList.add(reverse ? 'yes' : 'no');
-      }
-      item.querySelectorAll('.yn-btn').forEach(b => {
-        b.classList.remove('active-y','active-n','active-na');
-        if (b.textContent === 'Y' && val === 'Y') b.classList.add('active-y');
-        else if (b.textContent === 'N' && val === 'N') b.classList.add('active-n');
-        else if (b.textContent === 'N/A' && val === 'NA') b.classList.add('active-na');
-      });
-      // Handle triggerField
-      if (q?.triggerField) {
-        const tf = document.getElementById(q.triggerField);
-        if (tf) tf.style.display = (val === 'Y') ? 'block' : 'none';
-      }
-    } catch(e) {
-      console.error('Failed to set YN for:', id, e);
-    }
-  });
-
-  // PPE checkboxes
-  document.querySelectorAll('input[name="ppe"]').forEach(cb => {
-    if (['Hi-Vis Vest','Steel Cap Boots','Safety Glasses'].includes(cb.value)) {
-      cb.checked = true;
-    }
-  });
-  updatePPE();
-  document.getElementById('ppeField').style.display = 'block';
-
-  // Gate access details
-  document.getElementById('keyCode').value = 'Gate code: 1234 — collect key from reception';
-  document.getElementById('keyCodeField').style.display = 'block';
-
-  // Tank details — only for Full Onsite
-  if (!isOffsite) document.getElementById('tankVolumeSelect').value = '5000';
-  if (isOffsite) {
-    showToast('⚡ Interim Offsite test data loaded — sections 1, 2, 4 & 8 only');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    updateProgress(); updateComplianceBanner(); updateAuditResults();
-    checkC2Compliance(); checkCorrectiveActionsRequired();
-    return;
-  }
-  document.getElementById('tankVolumeSelect').value = '5000';
-  toggleTankVolumeOther('5000');
-  document.getElementById('safeFill').value = '4500';
-  document.getElementById('currentLevel').value = '2000';
-  document.getElementById('tankSerial').value = 'ADBT-TEST-001';
-  document.getElementById('tankType').value = 'Poly Round Single Skin';
-  document.getElementById('dipSystem').value = 'Sight Tube';
-
-  // Section D
-  document.getElementById('correctiveActions').value = 'Test audit — no corrective actions required. All systems operating within normal parameters.';
-
-  // Photo checkboxes
-  document.getElementById('photoGateDone').checked = true;
-  document.getElementById('photoTankDone').checked = true;
-
-  // Auditor (already pre-filled but set again to be sure)
-  document.getElementById('auditorName').value = 'Michael Hodnett';
-  document.getElementById('auditorTitle').value = 'BDM';
-  document.getElementById('auditorEmail').value = 'michaelhodnett2022@gmail.com';
-  document.getElementById('auditorMobile').value = '0427 670 726';
-
-  updateProgress();
-  updateComplianceBanner();
-  updateAuditResults();
-  checkC2Compliance();
-  checkCorrectiveActionsRequired();
-
-  showToast('⚡ Test data loaded — ready to test!');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // =====================================================================
@@ -5236,8 +5074,7 @@ function restoreAuditFormFields(data) {
 
   // Audit type — triggers section visibility
   if (data.auditType) {
-    const atEl = document.getElementById('auditTypeSelect');
-    if (atEl) { atEl.value = data.auditType; applyAuditType(data.auditType); }
+    setAuditTypeRadio(data.auditType);
   }
 
   // Y/N questions — items were freshly rendered at the top of this function,
@@ -5399,9 +5236,7 @@ function clearForm() {
   document.getElementById('mudmapAddress').value = '';
 
   // Reset audit type selector and hide all cards
-  const auditTypeEl = document.getElementById('auditTypeSelect');
-  if (auditTypeEl) auditTypeEl.value = '';
-  applyAuditType('');
+  setAuditTypeRadio('');
   window._auditType = '';
 
   // Reset editing state

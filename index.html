@@ -2710,29 +2710,29 @@ function updateAuditResults() {
   });
 
   if (c2Answered.length === 0) {
-    isoBlock.className = 'iso-compliance-block iso-neutral';
-    isoIcon.textContent = '📋';
-    isoTitle.textContent = 'ISO-22241 Compliance';
-    isoSub.textContent = 'Answer all C.2 questions to see compliance status';
-    isoScore.textContent = '—';
+    if (isoBlock) isoBlock.className = 'iso-compliance-block iso-neutral';
+    if (isoIcon) isoIcon.textContent = '📋';
+    if (isoTitle) isoTitle.textContent = 'ISO-22241 Compliance';
+    if (isoSub) isoSub.textContent = 'Answer all C.2 questions to see compliance status';
+    if (isoScore) isoScore.textContent = '—';
   } else if (c2Failed.length > 0) {
-    isoBlock.className = 'iso-compliance-block iso-fail';
-    isoIcon.textContent = '❌';
-    isoTitle.textContent = 'NON-COMPLIANT — ISO-22241';
-    isoSub.textContent = `${c2Failed.length} C.2 item${c2Failed.length > 1 ? 's' : ''} failed. AdBlue® delivered may not meet ISO-22241 certification. Corrective action required before delivery.`;
-    isoScore.textContent = `${c2Passed.length}/${c2Questions.length}`;
+    if (isoBlock) isoBlock.className = 'iso-compliance-block iso-fail';
+    if (isoIcon) isoIcon.textContent = '❌';
+    if (isoTitle) isoTitle.textContent = 'NON-COMPLIANT — ISO-22241';
+    if (isoSub) isoSub.textContent = `${c2Failed.length} C.2 item${c2Failed.length > 1 ? 's' : ''} failed. AdBlue® delivered may not meet ISO-22241 certification. Corrective action required before delivery.`;
+    if (isoScore) isoScore.textContent = `${c2Passed.length}/${c2Questions.length}`;
   } else if (c2Unanswered.length > 0) {
-    isoBlock.className = 'iso-compliance-block iso-partial';
-    isoIcon.textContent = '⚠️';
-    isoTitle.textContent = 'ISO-22241 — Incomplete';
-    isoSub.textContent = `${c2Unanswered.length} C.2 question${c2Unanswered.length > 1 ? 's' : ''} still unanswered. Complete all C.2 items to confirm compliance.`;
-    isoScore.textContent = `${c2Answered.length}/${c2Questions.length}`;
+    if (isoBlock) isoBlock.className = 'iso-compliance-block iso-partial';
+    if (isoIcon) isoIcon.textContent = '⚠️';
+    if (isoTitle) isoTitle.textContent = 'ISO-22241 — Incomplete';
+    if (isoSub) isoSub.textContent = `${c2Unanswered.length} C.2 question${c2Unanswered.length > 1 ? 's' : ''} still unanswered. Complete all C.2 items to confirm compliance.`;
+    if (isoScore) isoScore.textContent = `${c2Answered.length}/${c2Questions.length}`;
   } else {
-    isoBlock.className = 'iso-compliance-block iso-pass';
-    isoIcon.textContent = '✅';
-    isoTitle.textContent = 'COMPLIANT — ISO-22241';
-    isoSub.textContent = 'All C.2 QA checks passed. Tank meets ISO-22241 requirements for AdBlue® storage and delivery.';
-    isoScore.textContent = `${c2Questions.length}/${c2Questions.length}`;
+    if (isoBlock) isoBlock.className = 'iso-compliance-block iso-pass';
+    if (isoIcon) isoIcon.textContent = '✅';
+    if (isoTitle) isoTitle.textContent = 'COMPLIANT — ISO-22241';
+    if (isoSub) isoSub.textContent = 'All C.2 QA checks passed. Tank meets ISO-22241 requirements for AdBlue® storage and delivery.';
+    if (isoScore) isoScore.textContent = `${c2Questions.length}/${c2Questions.length}`;
   }
 
   // Missed questions list (non-C2 + unanswered C2)
@@ -5263,11 +5263,12 @@ function restoreAuditFormFields(data) {
     }
   }
   updateProgress();
-  if (typeof updateComplianceBanner === 'function') updateComplianceBanner();
-  if (typeof updateAuditResults === 'function') updateAuditResults();
-  if (typeof checkC2Compliance === 'function') checkC2Compliance();
-  if (typeof checkCorrectiveActionsRequired === 'function') checkCorrectiveActionsRequired();
-  if (typeof updateFieldStates === 'function') updateFieldStates();
+  // Each wrapped individually — none of these should be able to crash the
+  // overall restore after the actual Y/N data has already been set above.
+  [updateComplianceBanner, updateAuditResults, checkC2Compliance, checkCorrectiveActionsRequired, updateFieldStates].forEach(fn => {
+    try { if (typeof fn === 'function') fn(); }
+    catch(e) { console.error(fn.name + ' failed during restore:', e.message); }
+  });
 
   // Visible diagnostic — no DevTools needed to see what happened
   const totalYN = data.ynValues ? Object.keys(data.ynValues).length : 0;

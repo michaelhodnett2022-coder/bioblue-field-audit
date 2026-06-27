@@ -4756,24 +4756,15 @@ async function loadExistingAudit() {
     return;
   }
 
-  // Search Drive for JSON data files in BioBlue Audits folder
+  // Search Drive for JSON data files across all client folders
   showToast('🔍 Searching for saved audits...');
   try {
-    // Find the BioBlue Audits folder first
-    const folderRes = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=name='${GDRIVE_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name)`,
-      { headers: { Authorization: `Bearer ${gdriveToken}` } }
-    );
-    const folderData = await folderRes.json();
-    if (!folderData.files || folderData.files.length === 0) {
-      showToast('⚠️ No saved audits found in Drive');
-      return;
-    }
-    const folderId = folderData.files[0].id;
-
-    // Search for JSON data files
+    // Search for JSON data files — searches by name pattern only, not restricted
+    // to direct children of the root folder, since audit JSON files now live
+    // inside each client's own subfolder. The drive.file OAuth scope already
+    // limits results to files this app created, so this stays safely scoped.
     const searchRes = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q='${folderId}' in parents and name contains '_data.json' and trashed=false&fields=files(id,name,modifiedTime)&orderBy=modifiedTime desc&pageSize=50`,
+      `https://www.googleapis.com/drive/v3/files?q=name contains '_data.json' and trashed=false&fields=files(id,name,modifiedTime)&orderBy=modifiedTime desc&pageSize=50`,
       { headers: { Authorization: `Bearer ${gdriveToken}` } }
     );
     const searchData = await searchRes.json();

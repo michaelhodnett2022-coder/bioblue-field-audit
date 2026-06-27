@@ -4471,7 +4471,7 @@ async function uploadAndSend() {
       driveLink = uploaded.webViewLink;
       _auditPdfFileId = uploaded.id;
       // Save JSON data file alongside PDF for future editing
-      await saveAuditJSON(folderId, baseName, d, uploaded.id);
+      await saveAuditJSON(_auditClientFolderId, baseName, d, uploaded.id);
     }
 
     // Append to master audit log in Excel subfolder
@@ -5092,6 +5092,12 @@ async function saveDraft() {
 function restoreAuditFormFields(data) {
   const setVal = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined && val !== null && val !== '') el.value = val; };
 
+  // Force a fresh render of all Y/N items (and their inline detail fields —
+  // keyCodeField, inductionField, ppeField) FIRST, before setting any values,
+  // since renderYNGroups() always wipes and rebuilds those containers from
+  // scratch — doing this after field-setting would destroy values just set.
+  renderYNGroups();
+
   // Customer identity — needed when restoring a PAST SUBMISSION that may be
   // for a different client than whatever's currently loaded via Field Tools
   setVal('customerName', data.customerName);
@@ -5243,28 +5249,23 @@ function restoreAuditFormFields(data) {
     if (atEl) { atEl.value = data.auditType; applyAuditType(data.auditType); }
   }
 
-  // Y/N questions — restore via existing question-lookup pattern. Wrapped in a
-  // short delay (matches the original code's pattern) so the browser has fully
-  // rendered/painted the just-revealed section cards before we target their
-  // child elements — setYN() silently no-ops if 'ynitem-'+id isn't found yet.
-  updateProgress();
-  setTimeout(() => {
-    if (data.ynValues) {
-      for (const [id, val] of Object.entries(data.ynValues)) {
-        const q = Object.values(ynQuestions).flat().find(q => q.id === id);
-        if (q) {
-          const grp = Object.entries(ynQuestions).find(([g,qs]) => qs.includes(q))?.[0];
-          if (grp) setYN(id, val, grp, q.triggerField||'');
-        }
+  // Y/N questions — items were freshly rendered at the top of this function,
+  // so 'ynitem-'+id elements are guaranteed to exist by now.
+  if (data.ynValues) {
+    for (const [id, val] of Object.entries(data.ynValues)) {
+      const q = Object.values(ynQuestions).flat().find(q => q.id === id);
+      if (q) {
+        const grp = Object.entries(ynQuestions).find(([g,qs]) => qs.includes(q))?.[0];
+        if (grp) setYN(id, val, grp, q.triggerField||'');
       }
     }
-    updateProgress();
-    if (typeof updateComplianceBanner === 'function') updateComplianceBanner();
-    if (typeof updateAuditResults === 'function') updateAuditResults();
-    if (typeof checkC2Compliance === 'function') checkC2Compliance();
-    if (typeof checkCorrectiveActionsRequired === 'function') checkCorrectiveActionsRequired();
-    if (typeof updateFieldStates === 'function') updateFieldStates();
-  }, 300);
+  }
+  updateProgress();
+  if (typeof updateComplianceBanner === 'function') updateComplianceBanner();
+  if (typeof updateAuditResults === 'function') updateAuditResults();
+  if (typeof checkC2Compliance === 'function') checkC2Compliance();
+  if (typeof checkCorrectiveActionsRequired === 'function') checkCorrectiveActionsRequired();
+  if (typeof updateFieldStates === 'function') updateFieldStates();
 }
 
 async function loadDraft() {

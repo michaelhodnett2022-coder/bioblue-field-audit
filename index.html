@@ -5243,23 +5243,28 @@ function restoreAuditFormFields(data) {
     if (atEl) { atEl.value = data.auditType; applyAuditType(data.auditType); }
   }
 
-  // Y/N questions — restore via existing question-lookup pattern
-  if (data.ynValues) {
-    for (const [id, val] of Object.entries(data.ynValues)) {
-      const q = Object.values(ynQuestions).flat().find(q => q.id === id);
-      if (q) {
-        const grp = Object.entries(ynQuestions).find(([g,qs]) => qs.includes(q))?.[0];
-        if (grp) setYN(id, val, grp, q.triggerField||'');
+  // Y/N questions — restore via existing question-lookup pattern. Wrapped in a
+  // short delay (matches the original code's pattern) so the browser has fully
+  // rendered/painted the just-revealed section cards before we target their
+  // child elements — setYN() silently no-ops if 'ynitem-'+id isn't found yet.
+  updateProgress();
+  setTimeout(() => {
+    if (data.ynValues) {
+      for (const [id, val] of Object.entries(data.ynValues)) {
+        const q = Object.values(ynQuestions).flat().find(q => q.id === id);
+        if (q) {
+          const grp = Object.entries(ynQuestions).find(([g,qs]) => qs.includes(q))?.[0];
+          if (grp) setYN(id, val, grp, q.triggerField||'');
+        }
       }
     }
-  }
-
-  updateProgress();
-  if (typeof updateComplianceBanner === 'function') updateComplianceBanner();
-  if (typeof updateAuditResults === 'function') updateAuditResults();
-  if (typeof checkC2Compliance === 'function') checkC2Compliance();
-  if (typeof checkCorrectiveActionsRequired === 'function') checkCorrectiveActionsRequired();
-  if (typeof updateFieldStates === 'function') updateFieldStates();
+    updateProgress();
+    if (typeof updateComplianceBanner === 'function') updateComplianceBanner();
+    if (typeof updateAuditResults === 'function') updateAuditResults();
+    if (typeof checkC2Compliance === 'function') checkC2Compliance();
+    if (typeof checkCorrectiveActionsRequired === 'function') checkCorrectiveActionsRequired();
+    if (typeof updateFieldStates === 'function') updateFieldStates();
+  }, 300);
 }
 
 async function loadDraft() {

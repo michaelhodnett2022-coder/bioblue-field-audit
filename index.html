@@ -5241,13 +5241,24 @@ function restoreAuditFormFields(data) {
   }
 
   // Y/N questions — items were freshly rendered at the top of this function,
-  // so 'ynitem-'+id elements are guaranteed to exist by now.
+  // so 'ynitem-'+id elements are guaranteed to exist by now. Each call is
+  // wrapped individually: setYN() triggers several compliance-check side
+  // effects internally, and if any of those throws on a partially-restored
+  // state, an unguarded loop would silently die after the first item —
+  // matching exactly what was observed in testing. This guarantees every
+  // question gets attempted regardless of any single one failing.
+  let _ynOk = 0, _ynFailed = [];
   if (data.ynValues) {
     for (const [id, val] of Object.entries(data.ynValues)) {
-      const q = Object.values(ynQuestions).flat().find(q => q.id === id);
-      if (q) {
-        const grp = Object.entries(ynQuestions).find(([g,qs]) => qs.includes(q))?.[0];
-        if (grp) setYN(id, val, grp, q.triggerField||'');
+      try {
+        const q = Object.values(ynQuestions).flat().find(q => q.id === id);
+        if (q) {
+          const grp = Object.entries(ynQuestions).find(([g,qs]) => qs.includes(q))?.[0];
+          if (grp) { setYN(id, val, grp, q.triggerField||''); _ynOk++; }
+        }
+      } catch(e) {
+        console.error('setYN failed for', id, '—', e.message);
+        _ynFailed.push(id + ' (' + e.message + ')');
       }
     }
   }
@@ -5257,6 +5268,16 @@ function restoreAuditFormFields(data) {
   if (typeof checkC2Compliance === 'function') checkC2Compliance();
   if (typeof checkCorrectiveActionsRequired === 'function') checkCorrectiveActionsRequired();
   if (typeof updateFieldStates === 'function') updateFieldStates();
+
+  // Visible diagnostic — no DevTools needed to see what happened
+  const totalYN = data.ynValues ? Object.keys(data.ynValues).length : 0;
+  if (totalYN > 0) {
+    if (_ynFailed.length > 0) {
+      showToast(`⚠️ Y/N restore: ${_ynOk}/${totalYN} OK. Failed: ${_ynFailed.slice(0,3).join(', ')}${_ynFailed.length>3?' +'+(_ynFailed.length-3)+' more':''}`, 6000);
+    } else {
+      showToast(`✅ Y/N restore: ${_ynOk}/${totalYN} restored successfully`);
+    }
+  }
 }
 
 async function loadDraft() {
@@ -6019,11 +6040,11 @@ function syncMudmapAddress() {
   if (el && addr) el.value = addr;
 }
 
-function showToast(msg) {
+function showToast(msg, duration=2500) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
+  setTimeout(() => t.classList.remove('show'), duration);
 }
 
 // =====================================================================

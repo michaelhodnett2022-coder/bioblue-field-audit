@@ -5108,10 +5108,10 @@ function restoreAuditFormFields(data) {
     const stateEl = document.getElementById('state');
     if (stateEl) for (let i=0;i<stateEl.options.length;i++) if (stateEl.options[i].value===data.state) { stateEl.selectedIndex=i; break; }
   }
-  setVal('bizContactName', data.bizContactName);
-  setVal('bizContactRole', data.bizContactRole);
-  setVal('bizContactEmail', data.bizContactEmail);
-  setVal('bizContactPhone', data.bizContactPhone);
+  setVal('bizContactName', data.bizContactName || data.siteContact);
+  setVal('bizContactRole', data.bizContactRole || data.siteContactTitle);
+  setVal('bizContactEmail', data.bizContactEmail || data.siteEmail);
+  setVal('bizContactPhone', data.bizContactPhone || data.siteMobile);
   setVal('logContactName', data.logContactName);
   setVal('logContactRole', data.logContactRole);
   setVal('logContactEmail', data.logContactEmail);

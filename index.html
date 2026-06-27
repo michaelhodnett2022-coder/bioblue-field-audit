@@ -4621,6 +4621,29 @@ async function loadExistingAudit() {
   }
 }
 
+function filterAuditPicker(query) {
+  const results = document.getElementById('auditPickerResults');
+  if (!results || !window._auditPickerFiles) return;
+  const q = query.toLowerCase().trim();
+  const matches = q
+    ? window._auditPickerFiles.filter(f => f.displayName.toLowerCase().includes(q))
+    : window._auditPickerFiles;
+  const formatDate = (iso) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-AU', { day:'2-digit', month:'short', year:'numeric' }) +
+           ' ' + d.toLocaleTimeString('en-AU', { hour:'2-digit', minute:'2-digit' });
+  };
+  results.innerHTML = matches.map(f => `
+    <div onclick="selectAuditFile('${f.id}','${f.name}')" style="
+      padding:12px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.08);
+      transition:background 0.15s;
+    " onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='transparent'">
+      <div style="font-size:13px;font-weight:600;color:white;">${f.displayName}</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.55);margin-top:2px;">Last modified: ${formatDate(f.modifiedTime)}</div>
+    </div>`).join('') || `<div style="padding:20px 14px;text-align:center;color:rgba(255,255,255,0.5);font-size:13px;">No matches</div>`;
+}
+
 function showAuditPickerModal(files) {
   // Remove existing modal if present
   const existing = document.getElementById('auditPickerModal');
@@ -4640,30 +4663,39 @@ function showAuditPickerModal(files) {
            ' ' + d.toLocaleTimeString('en-AU', { hour:'2-digit', minute:'2-digit' });
   };
 
-  const rows = files.map((f, i) => {
-    const name = f.name.replace('BioBlue_Site_Audit_','').replace('_data.json','').replace(/_/g,' ');
-    return `<div onclick="selectAuditFile('${f.id}','${f.name}')" style="
-      padding:12px 14px;cursor:pointer;border-bottom:1px solid #eee;
-      display:flex;flex-direction:column;gap:3px;
+  window._auditPickerFiles = files.map(f => ({
+    ...f,
+    displayName: f.name.replace('BioBlue_Site_Audit_','').replace('_data.json','').replace(/_/g,' ')
+  }));
+
+  const renderRows = (list) => list.map(f => `
+    <div onclick="selectAuditFile('${f.id}','${f.name}')" style="
+      padding:12px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.08);
       transition:background 0.15s;
-    " onmouseover="this.style.background='#f0f6ff'" onmouseout="this.style.background='white'">
-      <div style="font-size:13px;font-weight:600;color:#003466;">${name}</div>
-      <div style="font-size:11px;color:#888;">Last modified: ${formatDate(f.modifiedTime)}</div>
-    </div>`;
-  }).join('');
+    " onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='transparent'">
+      <div style="font-size:13px;font-weight:600;color:white;">${f.displayName}</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.55);margin-top:2px;">Last modified: ${formatDate(f.modifiedTime)}</div>
+    </div>`).join('') || `<div style="padding:20px 14px;text-align:center;color:rgba(255,255,255,0.5);font-size:13px;">No matches</div>`;
 
   modal.innerHTML = `
-    <div style="background:white;border-radius:12px;width:100%;max-width:480px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,0.25);overflow:hidden;">
-      <div style="background:#003466;color:white;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;">
+    <div style="background:#003466;border-radius:12px;width:100%;max-width:480px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,0.4);overflow:hidden;">
+      <div style="padding:16px 20px 0;display:flex;align-items:center;justify-content:space-between;">
         <div>
-          <div style="font-size:15px;font-weight:700;">📂 Load Existing Audit</div>
-          <div style="font-size:11px;opacity:0.7;margin-top:2px;">${files.length} saved audit${files.length !== 1 ? 's' : ''} found</div>
+          <div style="font-size:15px;font-weight:700;color:white;">📂 Load Existing Audit</div>
+          <div style="font-size:11px;opacity:0.7;color:white;margin-top:2px;">${files.length} saved audit${files.length !== 1 ? 's' : ''} found</div>
         </div>
-        <button onclick="document.getElementById('auditPickerModal').remove()" style="background:rgba(255,255,255,0.2);border:none;color:white;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;">✕</button>
+        <button onclick="document.getElementById('auditPickerModal').remove()" style="background:rgba(255,255,255,0.15);border:none;color:white;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;">✕</button>
       </div>
-      <div style="overflow-y:auto;flex:1;">${rows}</div>
-      <div style="padding:12px 16px;border-top:1px solid #eee;background:#f9fafb;">
-        <p style="font-size:11px;color:#888;margin:0;">Only audits submitted after this update are listed. Select one to restore all form fields.</p>
+      <div style="padding:14px 20px;">
+        <input type="text" id="auditPickerSearch" placeholder="Search audits..." autocomplete="off"
+          oninput="filterAuditPicker(this.value)"
+          style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.2);
+            background:rgba(255,255,255,0.1);color:white;font-family:'DM Sans',sans-serif;
+            font-size:13px;-webkit-appearance:none;box-sizing:border-box;">
+      </div>
+      <div id="auditPickerResults" style="overflow-y:auto;flex:1;border-top:1px solid rgba(255,255,255,0.1);">${renderRows(window._auditPickerFiles)}</div>
+      <div style="padding:12px 16px;border-top:1px solid rgba(255,255,255,0.1);">
+        <p style="font-size:11px;color:rgba(255,255,255,0.5);margin:0;">Only audits submitted after this update are listed. Select one to restore all form fields.</p>
       </div>
     </div>`;
 
@@ -5953,14 +5985,17 @@ async function loadClientFromURL() {
     return;
   }
 
-  // Show the banner immediately with the client name from session (no token needed).
+  // Show the banner immediately with the client name — URL param first
+  // (guaranteed present whenever navigated from the hub), sessionStorage
+  // as a fallback for any other entry path (e.g. a bookmarked/direct URL).
   if (banner) {
     banner.style.display = 'flex';
     document.getElementById('bannerClientId').textContent = 'Ref: ' + clientId;
     try {
+      const _urlName = new URLSearchParams(window.location.search).get('name');
       const _sessName = sessionStorage.getItem('bb_selected_client_name');
       const _nm = document.getElementById('bannerClientName');
-      if (_nm) _nm.textContent = _sessName || 'Tap below to load full details';
+      if (_nm) _nm.textContent = _urlName || _sessName || 'Tap below to load full details';
     } catch(e) {}
   }
 
@@ -6527,7 +6562,11 @@ function showPrefillRetry(clientId) {
   const banner = document.getElementById('clientBanner');
   if (!banner) return;
   const _nm = document.getElementById('bannerClientName');
-  if (_nm) _nm.textContent = 'Tap below to load full details';
+  if (_nm) {
+    const _urlName = new URLSearchParams(window.location.search).get('name');
+    const _sessName = sessionStorage.getItem('bb_selected_client_name');
+    _nm.textContent = _urlName || _sessName || 'Tap below to load full details';
+  }
   let btn = document.getElementById('prefillRetryBtn');
   if (!btn) {
     btn = document.createElement('button');

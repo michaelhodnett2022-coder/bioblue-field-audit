@@ -1497,15 +1497,23 @@
           </select>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
-        <div id="satPill" style="display:flex;align-items:center;gap:8px;background:white;border:1.5px solid var(--gray-light);border-radius:8px;padding:10px 12px;cursor:pointer;" onclick="document.getElementById('satDelivery').click()">
-          <input type="checkbox" id="satDelivery" autocomplete="off" onchange="updateAccessHours();updateWeekendStyle()" style="width:16px;height:16px;accent-color:var(--green);cursor:pointer;flex-shrink:0;">
-          <span style="font-size:13px;font-weight:500;color:var(--gray-dark);line-height:1.2;">Saturday<br>delivery OK</span>
+      <div style="margin-bottom:12px;">
+        <div class="yn-item" id="yn-satDelivery">
+          <div class="yn-question">Saturday delivery OK?</div>
+          <div class="yn-controls">
+            <button class="yn-btn" onclick="setWeekendYN('sat','Y')">Y</button>
+            <button class="yn-btn" onclick="setWeekendYN('sat','N')">N</button>
+          </div>
         </div>
-        <div id="sunPill" style="display:flex;align-items:center;gap:8px;background:white;border:1.5px solid var(--gray-light);border-radius:8px;padding:10px 12px;cursor:pointer;" onclick="document.getElementById('sunDelivery').click()">
-          <input type="checkbox" id="sunDelivery" autocomplete="off" onchange="updateAccessHours();updateWeekendStyle()" style="width:16px;height:16px;accent-color:var(--green);cursor:pointer;flex-shrink:0;">
-          <span style="font-size:13px;font-weight:500;color:var(--gray-dark);line-height:1.2;">Sunday<br>delivery OK</span>
+        <div class="yn-item" id="yn-sunDelivery" style="margin-top:8px;">
+          <div class="yn-question">Sunday delivery OK?</div>
+          <div class="yn-controls">
+            <button class="yn-btn" onclick="setWeekendYN('sun','Y')">Y</button>
+            <button class="yn-btn" onclick="setWeekendYN('sun','N')">N</button>
+          </div>
         </div>
+        <input type="checkbox" id="satDelivery" style="display:none;">
+        <input type="checkbox" id="sunDelivery" style="display:none;">
       </div>
 
       <div id="yn-b1" class="yn-group">
@@ -1986,7 +1994,33 @@
 <div class="sticky-footer" style="grid-template-columns:1fr 1fr 1fr;">
   <button class="btn btn-clear" onclick="confirmClearForm()">🗑️ Clear</button>
   <button class="btn btn-pdf-dl" onclick="downloadToDevice()">⬇️ Download</button>
-  <button class="btn btn-submit" onclick="uploadAndSend()">☁️ Upload & Send</button>
+  <button class="btn btn-submit" onclick="openQualityCheckModal()">☁️ Upload & Send</button>
+</div>
+
+<!-- QUALITY CHECK MODAL -->
+<div class="modal-overlay" id="qualityCheckModal">
+  <div class="modal-box">
+    <h3 style="color:var(--blue-deep);">Final Quality Check</h3>
+    <p style="font-size:12.5px;color:var(--gray-mid);margin-bottom:18px;">Quick check before this goes to Logistics</p>
+
+    <div class="qc-check-item" style="display:flex;align-items:flex-start;gap:12px;padding:13px 14px;background:#f7f9fb;border:1.5px solid #e2e8f0;border-radius:10px;margin-bottom:10px;">
+      <input type="checkbox" id="qcCheck1" onchange="updateQCSubmitButton()" style="width:20px;height:20px;margin-top:1px;accent-color:var(--blue-deep);flex-shrink:0;cursor:pointer;">
+      <label for="qcCheck1" style="font-size:13.5px;color:#1f2937;line-height:1.4;cursor:pointer;">I have reviewed all sections of this audit and confirm the information is accurate</label>
+    </div>
+    <div class="qc-check-item" style="display:flex;align-items:flex-start;gap:12px;padding:13px 14px;background:#f7f9fb;border:1.5px solid #e2e8f0;border-radius:10px;margin-bottom:10px;">
+      <input type="checkbox" id="qcCheck2" onchange="updateQCSubmitButton()" style="width:20px;height:20px;margin-top:1px;accent-color:var(--blue-deep);flex-shrink:0;cursor:pointer;">
+      <label for="qcCheck2" style="font-size:13.5px;color:#1f2937;line-height:1.4;cursor:pointer;">I have checked for spelling and data entry errors throughout</label>
+    </div>
+    <div class="qc-check-item" style="display:flex;align-items:flex-start;gap:12px;padding:13px 14px;background:#f7f9fb;border:1.5px solid #e2e8f0;border-radius:10px;margin-bottom:10px;">
+      <input type="checkbox" id="qcCheck3" onchange="updateQCSubmitButton()" style="width:20px;height:20px;margin-top:1px;accent-color:var(--blue-deep);flex-shrink:0;cursor:pointer;">
+      <label for="qcCheck3" style="font-size:13.5px;color:#1f2937;line-height:1.4;cursor:pointer;">I have confirmed no required information is missing</label>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" style="background:white;border:1.5px solid #d1d5db;color:#4b5563;" onclick="closeQualityCheckModal()">Go Back &amp; Review</button>
+      <button class="btn" id="qcSubmitBtn" disabled style="background:#9ca3af;color:white;cursor:not-allowed;" onclick="confirmQualityCheckAndSubmit()">☁️ Upload &amp; Send</button>
+    </div>
+  </div>
 </div>
 
 <!-- MODAL -->
@@ -2046,34 +2080,34 @@ const ynQuestions = {
     { id: 'spillKit',        num: 17, text: 'Is an AdBlue®-compatible spill kit accessible on site and clearly labelled?' },
   ],
   'c1': [
-    { id: 'fillCondition',  num: 21, text: 'Are fill connections in good condition?' },
-    { id: 'driverAccess',   num: 22, text: 'Is driver able to complete delivery (access fill point) without risking injury?' },
-    { id: 'highAccess',     num: 23, text: 'If the fill point is above 2m, is a safe working platform, handrail or fall restraint available?', hasNA: true },
-    { id: 'fillLabelled',   num: 24, text: 'Are fill points correctly labelled for AdBlue® and with tank number (if applicable)?', hasNA: true },
-    { id: 'safeFillMarked', num: 25, text: 'Is the safe fill level clearly marked on the tank?' },
-    { id: 'dipLabelled',    num: 26, text: 'Is the dip point labelled for AdBlue® use and tank number (where applicable)?', hasNA: true },
-    { id: 'levelAccurate',  num: 27, text: 'Is the level monitoring system reading accurate and displayed in litres?', hasNA: true },
+    { id: 'fillCondition',  num: 18, text: 'Are fill connections in good condition?' },
+    { id: 'driverAccess',   num: 19, text: 'Is driver able to complete delivery (access fill point) without risking injury?' },
+    { id: 'highAccess',     num: 20, text: 'If the fill point is above 2m, is a safe working platform, handrail or fall restraint available?', hasNA: true },
+    { id: 'fillLabelled',   num: 21, text: 'Are fill points correctly labelled for AdBlue® and with tank number (if applicable)?', hasNA: true },
+    { id: 'safeFillMarked', num: 22, text: 'Is the safe fill level clearly marked on the tank?' },
+    { id: 'dipLabelled',    num: 23, text: 'Is the dip point labelled for AdBlue® use and tank number (where applicable)?', hasNA: true },
+    { id: 'levelAccurate',  num: 24, text: 'Is the level monitoring system reading accurate and displayed in litres?', hasNA: true },
   ],
   'c2': [
-    { id: 'dedicatedTank',   num: 28, text: 'Storage Tank is dedicated for AdBlue® (AUS 32) use only.' },
-    { id: 'tankLabelled',    num: 29, text: 'Storage Tank is clearly labelled as designated for AdBlue® use only.' },
-    { id: 'compatMaterials', num: 30, text: 'Is the storage tank and dispensing equipment made from AdBlue®-compatible materials?<sup>1</sup>' },
-    { id: 'noIncompat',      num: 31, text: 'Does the tank or dispensing unit contain any incompatible metals — copper, brass, aluminium or uncoated mild steel?<sup>2</sup>', reverseColor: true },
-    { id: 'noLeak',          num: 32, text: 'Storage tank is free of visible leak(s)/damage.' },
-    { id: 'protectedTemp',   num: 33, text: 'Tank is positioned to protect AdBlue® from direct sunlight and extreme temperatures.' },
-    { id: 'tankCleaned',     num: 34, text: 'If the tank was previously used for another product, has it been cleaned and certified prior to first AdBlue® fill?<sup>3</sup>', hasNA: true },
-    { id: 'sealedEquip',     num: 35, text: 'AdBlue® is dispensed using clean, sealed equipment dedicated for AdBlue®.' },
-    { id: 'nozzleClean',     num: 36, text: 'Dispensing nozzle is clean and free from dirt, grime or foreign matter.' },
-    { id: 'lidSealed',       num: 37, text: 'Is the tank lid closed and properly sealed?' },
-    { id: 'ventSystem',      num: 38, text: 'Tank is fitted with compliant venting system (dust-proof, splashback-proof and filtered).' },
-    { id: 'ventCondition',   num: 39, text: 'Tank vent(s) are properly sealed, in good condition, and not blocked by foreign materials.' },
-    { id: 'fillClean',       num: 40, text: 'The AdBlue® fill point is clean and free from dirt, grime and foreign matter.' },
-    { id: 'dustCap',         num: 41, text: 'The AdBlue® fill point is fitted with a dust cap.' },
+    { id: 'dedicatedTank',   num: 25, text: 'Storage Tank is dedicated for AdBlue® (AUS 32) use only.' },
+    { id: 'tankLabelled',    num: 26, text: 'Storage Tank is clearly labelled as designated for AdBlue® use only.' },
+    { id: 'compatMaterials', num: 27, text: 'Is the storage tank and dispensing equipment made from AdBlue®-compatible materials?<sup>1</sup>' },
+    { id: 'noIncompat',      num: 28, text: 'Does the tank or dispensing unit contain any incompatible metals — copper, brass, aluminium or uncoated mild steel?<sup>2</sup>', reverseColor: true },
+    { id: 'noLeak',          num: 29, text: 'Storage tank is free of visible leak(s)/damage.' },
+    { id: 'protectedTemp',   num: 30, text: 'Tank is positioned to protect AdBlue® from direct sunlight and extreme temperatures.' },
+    { id: 'tankCleaned',     num: 31, text: 'If the tank was previously used for another product, has it been cleaned and certified prior to first AdBlue® fill?<sup>3</sup>', hasNA: true },
+    { id: 'sealedEquip',     num: 32, text: 'AdBlue® is dispensed using clean, sealed equipment dedicated for AdBlue®.' },
+    { id: 'nozzleClean',     num: 33, text: 'Dispensing nozzle is clean and free from dirt, grime or foreign matter.' },
+    { id: 'lidSealed',       num: 34, text: 'Is the tank lid closed and properly sealed?' },
+    { id: 'ventSystem',      num: 35, text: 'Tank is fitted with compliant venting system (dust-proof, splashback-proof and filtered).' },
+    { id: 'ventCondition',   num: 36, text: 'Tank vent(s) are properly sealed, in good condition, and not blocked by foreign materials.' },
+    { id: 'fillClean',       num: 37, text: 'The AdBlue® fill point is clean and free from dirt, grime and foreign matter.' },
+    { id: 'dustCap',         num: 38, text: 'The AdBlue® fill point is fitted with a dust cap.' },
   ],
   'e1': [
-    { id: 'photoGate',   num: 42, text: 'I have taken time-stamped photos of the site front gate/entrance.', scoreNeutral: true },
-    { id: 'photoTank',   num: 43, text: 'I have taken time-stamped photos of the delivery zone and AdBlue® tank/fill point.', scoreNeutral: true },
-    { id: 'nonCompComm', num: 44, text: 'Any identified non-compliances have been clearly communicated to the site representative, along with recommended corrective actions where applicable.', scoreNeutral: true },
+    { id: 'photoGate',   num: 39, text: 'I have taken time-stamped photos of the site front gate/entrance.', scoreNeutral: true },
+    { id: 'photoTank',   num: 40, text: 'I have taken time-stamped photos of the delivery zone and AdBlue® tank/fill point.', scoreNeutral: true },
+    { id: 'nonCompComm', num: 41, text: 'Any identified non-compliances have been clearly communicated to the site representative, along with recommended corrective actions where applicable.', scoreNeutral: true },
   ],
 };
 
@@ -3331,6 +3365,25 @@ function updateAccessHours() {
   document.getElementById('accessHours').value = result;
 }
 
+function setWeekendYN(day, val) {
+  const checkboxId = day === 'sat' ? 'satDelivery' : 'sunDelivery';
+  const checkbox = document.getElementById(checkboxId);
+  if (checkbox) checkbox.checked = (val === 'Y');
+  const item = document.getElementById('yn-' + checkboxId);
+  if (item) {
+    item.classList.remove('yes','no');
+    item.classList.add(val === 'Y' ? 'yes' : 'no');
+    item.querySelectorAll('.yn-btn').forEach(b => {
+      b.classList.remove('active-y','active-n');
+      if (b.textContent === 'Y' && val === 'Y') b.classList.add('active-y');
+      if (b.textContent === 'N' && val === 'N') b.classList.add('active-n');
+    });
+  }
+  updateAccessHours();
+  updateWeekendStyle();
+  if (typeof updateProgress === 'function') updateProgress();
+}
+
 function updateWeekendStyle() {
   const satEl = document.getElementById('satDelivery');
   const sunEl = document.getElementById('sunDelivery');
@@ -4173,6 +4226,38 @@ async function downloadToDevice() {
 // =====================================================================
 // UPLOAD & SEND — Drive (PDF + Excel) + email notification
 // =====================================================================
+// =====================================================================
+// FINAL QUALITY CHECK — must tick all 3 before Upload & Send proceeds
+// =====================================================================
+function openQualityCheckModal() {
+  ['qcCheck1','qcCheck2','qcCheck3'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.checked = false;
+  });
+  updateQCSubmitButton();
+  document.getElementById('qualityCheckModal')?.classList.add('active');
+}
+
+function closeQualityCheckModal() {
+  document.getElementById('qualityCheckModal')?.classList.remove('active');
+}
+
+function updateQCSubmitButton() {
+  const allChecked = ['qcCheck1','qcCheck2','qcCheck3'].every(id => document.getElementById(id)?.checked);
+  const btn = document.getElementById('qcSubmitBtn');
+  if (!btn) return;
+  btn.disabled = !allChecked;
+  btn.style.background = allChecked ? 'var(--blue-deep)' : '#9ca3af';
+  btn.style.cursor = allChecked ? 'pointer' : 'not-allowed';
+}
+
+function confirmQualityCheckAndSubmit() {
+  const allChecked = ['qcCheck1','qcCheck2','qcCheck3'].every(id => document.getElementById(id)?.checked);
+  if (!allChecked) return;
+  closeQualityCheckModal();
+  uploadAndSend();
+}
+
 async function uploadAndSend() {
   const _clientIdCheck = new URLSearchParams(window.location.search).get('client');
   if (!_clientIdCheck) {
@@ -5078,12 +5163,10 @@ function restoreAuditFormFields(data) {
     open24El.checked = !!data.open24hrs;
     toggle24hrs(open24El);
   }
-  const satEl = document.getElementById('satDelivery');
-  const sunEl = document.getElementById('sunDelivery');
-  if (satEl) satEl.checked = !!data.satDelivery;
-  if (sunEl) sunEl.checked = !!data.sunDelivery;
-  if (typeof updateAccessHours === 'function') updateAccessHours();
-  if (typeof updateWeekendStyle === 'function') updateWeekendStyle();
+  if (typeof setWeekendYN === 'function') {
+    setWeekendYN('sat', data.satDelivery ? 'Y' : 'N');
+    setWeekendYN('sun', data.sunDelivery ? 'Y' : 'N');
+  }
   setVal('maxVehicle', data.maxVehicle);
   setVal('keyCode', data.keyCode);
   setVal('inductionDetails', data.inductionDetails);
@@ -5324,6 +5407,10 @@ function clearForm() {
 
   // Reset access hours
   document.getElementById('open24hrs').checked = false;
+  ['yn-satDelivery','yn-sunDelivery'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.classList.remove('yes','no'); el.querySelectorAll('.yn-btn').forEach(b => b.classList.remove('active-y','active-n')); }
+  });
   const satCb = document.getElementById('satDelivery'); if(satCb) { satCb.checked = false; }
   const sunCb = document.getElementById('sunDelivery'); if(sunCb) { sunCb.checked = false; }
   updateWeekendStyle();

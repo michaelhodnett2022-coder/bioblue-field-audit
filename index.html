@@ -1173,7 +1173,7 @@
 
   <div class="header-group">
     <div class="header-group-label">Client</div>
-    <a href="https://michaelhodnett2022-coder.github.io/bioblue-field-tools" class="btn btn-secondary btn-header-full">🔄 Change Client — Field Tools</a>
+    <a href="https://michaelhodnett2022-coder.github.io/bioblue-field-tools" class="btn btn-secondary btn-header-full">🔄 Change Client — Return to Field Tools Home Page</a>
   </div>
 
   <div class="header-group">
@@ -1200,6 +1200,18 @@
     <div style="display:flex;gap:8px;">
       <button onclick="loadDraft();hideDraftBanner();" style="padding:8px 18px;border-radius:8px;background:#f0c040;border:none;font-weight:700;font-size:13px;cursor:pointer;color:#5a3e00;">✅ Restore Draft</button>
       <button onclick="hideDraftBanner();" style="padding:8px 14px;border-radius:8px;background:white;border:2px solid #ccc;font-weight:600;font-size:13px;cursor:pointer;color:#666;">Dismiss</button>
+    </div>
+  </div>
+
+  <div id="existingSubmissionBanner" style="display:none;background:#e8f2fb;border:2px solid #1A9FD4;border-radius:10px;margin:12px 16px 0;padding:14px 16px;align-items:center;gap:12px;flex-wrap:wrap;">
+    <span style="font-size:20px;">ℹ️</span>
+    <div style="flex:1;min-width:180px;">
+      <div style="font-weight:700;font-size:13.5px;color:#003466;">An audit already exists for this client</div>
+      <div style="font-size:12px;color:#0055a5;">Submitted <span data-existing-submission-date>—</span>. Starting a new one here will replace it — use Recall Past Audit instead if you just need to update it.</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="loadExistingAudit();hideExistingSubmissionBanner();" style="padding:8px 18px;border-radius:8px;background:#1A9FD4;border:none;font-weight:700;font-size:13px;cursor:pointer;color:white;">🗂️ Recall Past Audit</button>
+      <button onclick="hideExistingSubmissionBanner();" style="padding:8px 14px;border-radius:8px;background:white;border:2px solid #ccc;font-weight:600;font-size:13px;cursor:pointer;color:#666;">Dismiss</button>
     </div>
   </div>
 
@@ -1273,17 +1285,11 @@
     <div style="display:flex;flex-direction:column;gap:8px;">
       <label class="audit-type-option" style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.92);border:2px solid transparent;border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color 0.15s;">
         <input type="radio" name="auditTypeRadio" value="full" onchange="setAuditTypeRadio('full')" style="width:18px;height:18px;accent-color:#003466;flex-shrink:0;cursor:pointer;">
-        <div>
-          <div style="font-size:14px;font-weight:700;color:#1a1a2e;">Full Onsite Audit</div>
-          <div style="font-size:11.5px;color:#5b6470;margin-top:1px;">Complete physical site visit — all sections</div>
-        </div>
+        <div style="font-size:14px;font-weight:700;color:#1a1a2e;">ONSITE</div>
       </label>
       <label class="audit-type-option" style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.92);border:2px solid transparent;border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color 0.15s;">
         <input type="radio" name="auditTypeRadio" value="offsite" onchange="setAuditTypeRadio('offsite')" style="width:18px;height:18px;accent-color:#003466;flex-shrink:0;cursor:pointer;">
-        <div>
-          <div style="font-size:14px;font-weight:700;color:#1a1a2e;">Interim Desktop Audit</div>
-          <div style="font-size:11.5px;color:#5b6470;margin-top:1px;">Logistics only — no site visit required</div>
-        </div>
+        <div style="font-size:14px;font-weight:700;color:#1a1a2e;">DESKTOP</div>
       </label>
     </div>
     <p style="color:rgba(255,255,255,0.6);font-size:11px;margin:10px 0 0;line-height:1.4;">
@@ -1991,7 +1997,7 @@
     <div class="modal-actions">
       <button class="btn btn-primary" onclick="closeModal()">Close</button>
       <button class="btn btn-primary" id="returnToFieldToolsBtn" onclick="doReturnToFieldTools()"
-        style="background:#003466;display:none;">← Field Tools</button>
+        style="background:#003466;color:white;display:none;">← Field Tools</button>
     </div>
   </div>
 </div>
@@ -3613,12 +3619,16 @@ async function generatePDF(returnDoc=false, presetData=null) {
   twoFieldRow('Access Hours / Restrictions', d.accessHours, 'Maximum Vehicle Size', d.maxVehicle);
   twoFieldRow('Weekend Delivery', weekendLabel, '', '');
   if (d.generalAccessNotes) fieldRow('General Site Access Notes', d.generalAccessNotes);
-  ynQuestions['b1'].forEach(q => ynRow(q.text, d.ynValues[q.id]));
-  if (d.keyCode) fieldRow('Key / Access Code', d.keyCode);
+  ynQuestions['b1'].forEach(q => {
+    ynRow(q.text, d.ynValues[q.id]);
+    if (q.id === 'gateAccess' && d.keyCode) fieldRow('Key / Access Code', d.keyCode);
+  });
 
-  ynQuestions['b2'].forEach(q => ynRow(q.text, d.ynValues[q.id]));
-  if (d.inductionDetails) fieldRow('Induction / Sign-in Details', d.inductionDetails);
-  if (d.ppeDetails) fieldRow('PPE Details', d.ppeDetails);
+  ynQuestions['b2'].forEach(q => {
+    ynRow(q.text, d.ynValues[q.id]);
+    if (q.id === 'siteInduction' && d.inductionDetails) fieldRow('Induction / Sign-in Details', d.inductionDetails);
+    if (q.id === 'ppeRequired' && d.ppeDetails) fieldRow('PPE Details', d.ppeDetails);
+  });
 
   sectionHeader('3. SAFETY, ENVIRONMENT & SPILL CONTAINMENT');
   ynQuestions['b3'].forEach(q => ynRow(q.text, d.ynValues[q.id]));
@@ -4331,6 +4341,12 @@ async function uploadAndSend() {
       _auditPdfFileId = uploaded.id;
       // Save JSON data file in its own subfolder, not loose alongside the PDF
       const _jsonFolderId = await getOrCreateClientFolder(_auditClientFolderId, 'Audit Data');
+      // Find any existing JSON for this client first — same suffix-search pattern
+      // the PDF already uses above — so a fresh "Load Client" submission also
+      // overwrites correctly, not just the Recall Past Audit edit path
+      if (!_auditJsonFileId) {
+        _auditJsonFileId = await findExistingFile('_data.json', _jsonFolderId);
+      }
       await saveAuditJSON(_jsonFolderId, baseName, d, uploaded.id);
     }
 
@@ -4747,8 +4763,10 @@ async function selectAuditFile(fileId, fileName) {
     showToast('✅ Audit loaded — make your changes then tap Upload & Send to update');
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // Show editing banner
+    // Show editing banner — and hide the "an audit exists" informational
+    // banner if it was showing, since it's now been acted on
     showEditingBanner(fileName);
+    hideExistingSubmissionBanner();
 
   } catch(e) {
     showToast('⚠️ Load failed: ' + e.message);
@@ -4922,6 +4940,44 @@ function showDraftBanner() {
 function hideDraftBanner() {
   const banner = document.getElementById('draftBanner');
   if (banner) banner.style.display = 'none';
+}
+
+function hideExistingSubmissionBanner() {
+  const banner = document.getElementById('existingSubmissionBanner');
+  if (banner) banner.style.display = 'none';
+}
+
+// =====================================================================
+// CHECK FOR EXISTING SUBMITTED AUDIT — runs alongside checkForAuditDraft,
+// shows regardless of HOW the client was loaded (fresh "Load Client" or
+// Recall Past Audit) — a BDM starting a brand new audit for a client that
+// already has one should see this warning either way, not just when they
+// happen to go looking via the picker themselves.
+// =====================================================================
+async function checkForExistingAuditSubmission(rootFolderId, clientId) {
+  if (!clientId) return;
+  // Don't show this if we're already in an edit (Recall Past Audit was used)
+  // — the purple "Editing existing audit" banner already covers that case.
+  if (_auditJsonFileId) return;
+  try {
+    const folderName = getCustomerName() || '';
+    const clientFolderId = await getClientFolderFromRecord(rootFolderId, clientId, folderName);
+    if (!clientFolderId) return;
+    const jsonFolderId = await getOrCreateClientFolder(clientFolderId, 'Audit Data');
+    const sr = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=name contains '_data.json' and '${jsonFolderId}' in parents and trashed=false&fields=files(id,modifiedTime)`,
+      { headers: { Authorization: `Bearer ${gdriveToken}` } }
+    );
+    const sd = await sr.json();
+    if (!sd.files || !sd.files.length) return;
+    const modTime = new Date(sd.files[0].modifiedTime).toLocaleDateString('en-AU', { day:'2-digit', month:'short', year:'numeric' });
+    const dateEl = document.querySelector('[data-existing-submission-date]');
+    if (dateEl) dateEl.textContent = modTime;
+    const banner = document.getElementById('existingSubmissionBanner');
+    if (banner) banner.style.display = 'flex';
+  } catch(e) {
+    console.warn('checkForExistingAuditSubmission failed (non-fatal):', e.message);
+  }
 }
 
 function loadDraftManual() {
@@ -6147,6 +6203,10 @@ async function fetchClientDetails(clientId) {
 
     // Check for an existing saved draft (any BDM, any device) — non-fatal if it fails
     checkForAuditDraft(fd.files[0].id, clientId);
+    // Separately check for an already-submitted audit — shows regardless of
+    // how the client was loaded, independent of the draft banner above (both
+    // can be relevant and shown at once — they represent different things)
+    checkForExistingAuditSubmission(fd.files[0].id, clientId);
 
   } catch(e) {
     showToast('⚠️ Could not load client — tap to retry');

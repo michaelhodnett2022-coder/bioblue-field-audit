@@ -2182,6 +2182,20 @@ function renderYNGroups() {
   }
 }
 
+// Lightweight default-setter for page-load seeding only — sets the value
+// and matching visual state WITHOUT triggering setYN's full side-effect
+// chain (checkC2Compliance/updateProgress/updateComplianceBanner/etc),
+// which are not meant to run this early, before any section is visible.
+function seedYNDefault(id, val) {
+  ynValues[id] = val;
+  const item = document.getElementById('ynitem-' + id);
+  if (!item) return;
+  item.classList.add(val === 'Y' ? 'yes' : 'no');
+  item.querySelectorAll('.yn-btn').forEach(b => {
+    if (b.textContent === val) b.classList.add(val === 'Y' ? 'active-y' : 'active-n');
+  });
+}
+
 function setYN(id, val, group, triggerField) {
   ynValues[id] = val;
   const item = document.getElementById('ynitem-' + id);
@@ -5352,11 +5366,11 @@ function clearForm() {
   // Reset access hours
   document.getElementById('open24hrs').checked = false;
   // Sat/Sun (Q1/Q2) already cleared by the generic .yn-item reset above —
-  // re-apply their "No" default, matching the same default used on page load
-  if (typeof setYN === 'function') {
-    setYN('satDelivery', 'N', 'b1', '');
-    setYN('sunDelivery', 'N', 'b1', '');
-  }
+  // re-apply their "No" default. Uses seedYNDefault (not full setYN) since
+  // this function's own broader reset logic already separately calls
+  // updateProgress/updateComplianceBanner/updateAuditResults below.
+  seedYNDefault('satDelivery', 'N');
+  seedYNDefault('sunDelivery', 'N');
   document.getElementById('timeFields').classList.remove('hidden');
   document.getElementById('accessOpen').value = '';
   document.getElementById('accessClose').value = '';
@@ -6068,9 +6082,11 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   renderYNGroups();
   // Sat/Sun (Q1/Q2) default to No on a fresh form, unlike every other
-  // Y/N question which starts genuinely unanswered — per Michael's spec
-  setYN('satDelivery', 'N', 'b1', '');
-  setYN('sunDelivery', 'N', 'b1', '');
+  // Y/N question which starts genuinely unanswered — per Michael's spec.
+  // Uses the lightweight seedYNDefault (not the full setYN) since this
+  // runs before any audit type is selected / any section is visible.
+  seedYNDefault('satDelivery', 'N');
+  seedYNDefault('sunDelivery', 'N');
   initMudmap();
   setMudmapTool('pan');
 

@@ -1497,24 +1497,6 @@
           </select>
         </div>
       </div>
-      <div style="margin-bottom:12px;">
-        <div class="yn-item" id="yn-satDelivery">
-          <div class="yn-question">Saturday delivery OK?</div>
-          <div class="yn-controls">
-            <button class="yn-btn" onclick="setWeekendYN('sat','Y')">Y</button>
-            <button class="yn-btn" onclick="setWeekendYN('sat','N')">N</button>
-          </div>
-        </div>
-        <div class="yn-item" id="yn-sunDelivery" style="margin-top:8px;">
-          <div class="yn-question">Sunday delivery OK?</div>
-          <div class="yn-controls">
-            <button class="yn-btn" onclick="setWeekendYN('sun','Y')">Y</button>
-            <button class="yn-btn" onclick="setWeekendYN('sun','N')">N</button>
-          </div>
-        </div>
-        <input type="checkbox" id="satDelivery" style="display:none;">
-        <input type="checkbox" id="sunDelivery" style="display:none;">
-      </div>
 
       <div id="yn-b1" class="yn-group">
         <!-- Y/N items injected by JS — keyCodeField injected after Q1 by renderYNGroups -->
@@ -1738,7 +1720,7 @@
 
       <!-- Address loader -->
       <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;position:relative;">
-        <input type="text" id="mudmapAddress" placeholder="Site address or Plus Code (auto-filled from Section A)" style="flex:1;min-width:200px;" oninput="osmAutocomplete(this,'mudmapAddrSuggestions')" autocomplete="off">
+        <input type="text" id="mudmapAddress" placeholder="Site address, Plus Code, or paste coordinates (auto-filled from Section A)" style="flex:1;min-width:200px;" oninput="osmAutocomplete(this,'mudmapAddrSuggestions')" autocomplete="off">
         <div id="mudmapAddrSuggestions" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #ccc;border-radius:0 0 8px 8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:999;max-height:220px;overflow-y:auto;"></div>
         <button onclick="loadMudmapSatellite()" style="font-size:13px;padding:8px 18px;border-radius:8px;border:2px solid var(--blue-mid);background:var(--blue-mid);color:white;font-weight:700;cursor:pointer;white-space:nowrap;">Add Map</button>
       </div>
@@ -2057,57 +2039,59 @@ function getCustomerName() {
 
 const ynQuestions = {
   'b1': [
-    { id: 'gateAccess',    num: 1,  text: 'Are any specific access instructions, gate codes, swipe access, or key arrangements required?', triggerField: 'keyCodeField', inlineDetails: true, scoreNeutral: true, solidColor: true, reverseColor: true },
-    { id: 'truckAccess',   num: 2,  text: 'Is the access route to the delivery zone clear of obstructions?' },
-    { id: 'overheadWires', num: 3,  text: 'Are there overhead power lines or cables that could obstruct delivery?', reverseColor: true, solidColor: true },
-    { id: 'manoeuvre',     num: 4,  text: 'Is there sufficient space on site to manoeuvre the delivery vehicle safely?' },
-    { id: 'noReverse',     num: 5,  text: 'Can vehicle be manoeuvred without reversing into or on premises?' },
-    { id: 'parkingMarked', num: 6,  text: 'Is the delivery/unloading area clearly marked or communicated to the driver?' },
+    { id: 'satDelivery', num: 1, text: 'Saturday delivery OK?' },
+    { id: 'sunDelivery', num: 2, text: 'Sunday delivery OK?' },
+    { id: 'gateAccess',    num: 3,  text: 'Are any specific access instructions, gate codes, swipe access, or key arrangements required?', triggerField: 'keyCodeField', inlineDetails: true, scoreNeutral: true, solidColor: true, reverseColor: true },
+    { id: 'truckAccess',   num: 4,  text: 'Is the access route to the delivery zone clear of obstructions?' },
+    { id: 'overheadWires', num: 5,  text: 'Are there overhead power lines or cables that could obstruct delivery?', reverseColor: true, solidColor: true },
+    { id: 'manoeuvre',     num: 6,  text: 'Is there sufficient space on site to manoeuvre the delivery vehicle safely?' },
+    { id: 'noReverse',     num: 7,  text: 'Can vehicle be manoeuvred without reversing into or on premises?' },
+    { id: 'parkingMarked', num: 8,  text: 'Is the delivery/unloading area clearly marked or communicated to the driver?' },
   ],
   'b2': [
-    { id: 'siteInduction',    num: 7,  text: 'Is a site-specific induction or sign-in process required?', triggerField: 'inductionField', scoreNeutral: true, reverseColor: true, solidColor: true },
-    { id: 'pedestrianAccess', num: 8,  text: 'Can the driver safely access the fill point on foot without risk of injury?' },
-    { id: 'hazardFree',       num: 9,  text: 'Is the delivery zone clear of hazards, obstacles or trip risks?' },
-    { id: 'lighting',         num: 10, text: 'Is adequate lighting provided for early morning or evening deliveries?', scoreNeutral: true },
-    { id: 'safetyCones',      num: 11, text: 'Safety cones or barriers are required.', scoreNeutral: true },
-    { id: 'tankVents',        num: 12, text: 'Are tank vents fitted?' },
-    { id: 'ppeRequired',      num: 13, text: 'Are there any site-specific Personal Protective Equipment (PPE) requirements?', triggerField: 'ppeField', scoreNeutral: true, reverseColor: true, solidColor: true },
+    { id: 'siteInduction',    num: 9,  text: 'Is a site-specific induction or sign-in process required?', triggerField: 'inductionField', scoreNeutral: true, reverseColor: true, solidColor: true },
+    { id: 'pedestrianAccess', num: 10,  text: 'Can the driver safely access the fill point on foot without risk of injury?' },
+    { id: 'hazardFree',       num: 11,  text: 'Is the delivery zone clear of hazards, obstacles or trip risks?' },
+    { id: 'lighting',         num: 12, text: 'Is adequate lighting provided for early morning or evening deliveries?', scoreNeutral: true },
+    { id: 'safetyCones',      num: 13, text: 'Safety cones or barriers are required.', scoreNeutral: true },
+    { id: 'tankVents',        num: 14, text: 'Are tank vents fitted?' },
+    { id: 'ppeRequired',      num: 15, text: 'Are there any site-specific Personal Protective Equipment (PPE) requirements?', triggerField: 'ppeField', scoreNeutral: true, reverseColor: true, solidColor: true },
   ],
   'b3': [
-    { id: 'spillContain',    num: 14, text: 'In the event of a spill exceeding 20L, would the product be contained within the site boundary?' },
-    { id: 'awayFromDrains',  num: 15, text: 'Is the fill point located clear of stormwater drains and surface runoff paths?' },
-    { id: 'drainCovers',     num: 16, text: 'Are stormwater drains near the delivery zone covered or protected during delivery?' },
-    { id: 'spillKit',        num: 17, text: 'Is an AdBlue®-compatible spill kit accessible on site and clearly labelled?' },
+    { id: 'spillContain',    num: 16, text: 'In the event of a spill exceeding 20L, would the product be contained within the site boundary?' },
+    { id: 'awayFromDrains',  num: 17, text: 'Is the fill point located clear of stormwater drains and surface runoff paths?' },
+    { id: 'drainCovers',     num: 18, text: 'Are stormwater drains near the delivery zone covered or protected during delivery?' },
+    { id: 'spillKit',        num: 19, text: 'Is an AdBlue®-compatible spill kit accessible on site and clearly labelled?' },
   ],
   'c1': [
-    { id: 'fillCondition',  num: 18, text: 'Are fill connections in good condition?' },
-    { id: 'driverAccess',   num: 19, text: 'Is driver able to complete delivery (access fill point) without risking injury?' },
-    { id: 'highAccess',     num: 20, text: 'If the fill point is above 2m, is a safe working platform, handrail or fall restraint available?', hasNA: true },
-    { id: 'fillLabelled',   num: 21, text: 'Are fill points correctly labelled for AdBlue® and with tank number (if applicable)?', hasNA: true },
-    { id: 'safeFillMarked', num: 22, text: 'Is the safe fill level clearly marked on the tank?' },
-    { id: 'dipLabelled',    num: 23, text: 'Is the dip point labelled for AdBlue® use and tank number (where applicable)?', hasNA: true },
-    { id: 'levelAccurate',  num: 24, text: 'Is the level monitoring system reading accurate and displayed in litres?', hasNA: true },
+    { id: 'fillCondition',  num: 20, text: 'Are fill connections in good condition?' },
+    { id: 'driverAccess',   num: 21, text: 'Is driver able to complete delivery (access fill point) without risking injury?' },
+    { id: 'highAccess',     num: 22, text: 'If the fill point is above 2m, is a safe working platform, handrail or fall restraint available?', hasNA: true },
+    { id: 'fillLabelled',   num: 23, text: 'Are fill points correctly labelled for AdBlue® and with tank number (if applicable)?', hasNA: true },
+    { id: 'safeFillMarked', num: 24, text: 'Is the safe fill level clearly marked on the tank?' },
+    { id: 'dipLabelled',    num: 25, text: 'Is the dip point labelled for AdBlue® use and tank number (where applicable)?', hasNA: true },
+    { id: 'levelAccurate',  num: 26, text: 'Is the level monitoring system reading accurate and displayed in litres?', hasNA: true },
   ],
   'c2': [
-    { id: 'dedicatedTank',   num: 25, text: 'Storage Tank is dedicated for AdBlue® (AUS 32) use only.' },
-    { id: 'tankLabelled',    num: 26, text: 'Storage Tank is clearly labelled as designated for AdBlue® use only.' },
-    { id: 'compatMaterials', num: 27, text: 'Is the storage tank and dispensing equipment made from AdBlue®-compatible materials?<sup>1</sup>' },
-    { id: 'noIncompat',      num: 28, text: 'Does the tank or dispensing unit contain any incompatible metals — copper, brass, aluminium or uncoated mild steel?<sup>2</sup>', reverseColor: true },
-    { id: 'noLeak',          num: 29, text: 'Storage tank is free of visible leak(s)/damage.' },
-    { id: 'protectedTemp',   num: 30, text: 'Tank is positioned to protect AdBlue® from direct sunlight and extreme temperatures.' },
-    { id: 'tankCleaned',     num: 31, text: 'If the tank was previously used for another product, has it been cleaned and certified prior to first AdBlue® fill?<sup>3</sup>', hasNA: true },
-    { id: 'sealedEquip',     num: 32, text: 'AdBlue® is dispensed using clean, sealed equipment dedicated for AdBlue®.' },
-    { id: 'nozzleClean',     num: 33, text: 'Dispensing nozzle is clean and free from dirt, grime or foreign matter.' },
-    { id: 'lidSealed',       num: 34, text: 'Is the tank lid closed and properly sealed?' },
-    { id: 'ventSystem',      num: 35, text: 'Tank is fitted with compliant venting system (dust-proof, splashback-proof and filtered).' },
-    { id: 'ventCondition',   num: 36, text: 'Tank vent(s) are properly sealed, in good condition, and not blocked by foreign materials.' },
-    { id: 'fillClean',       num: 37, text: 'The AdBlue® fill point is clean and free from dirt, grime and foreign matter.' },
-    { id: 'dustCap',         num: 38, text: 'The AdBlue® fill point is fitted with a dust cap.' },
+    { id: 'dedicatedTank',   num: 27, text: 'Storage Tank is dedicated for AdBlue® (AUS 32) use only.' },
+    { id: 'tankLabelled',    num: 28, text: 'Storage Tank is clearly labelled as designated for AdBlue® use only.' },
+    { id: 'compatMaterials', num: 29, text: 'Is the storage tank and dispensing equipment made from AdBlue®-compatible materials?<sup>1</sup>' },
+    { id: 'noIncompat',      num: 30, text: 'Does the tank or dispensing unit contain any incompatible metals — copper, brass, aluminium or uncoated mild steel?<sup>2</sup>', reverseColor: true },
+    { id: 'noLeak',          num: 31, text: 'Storage tank is free of visible leak(s)/damage.' },
+    { id: 'protectedTemp',   num: 32, text: 'Tank is positioned to protect AdBlue® from direct sunlight and extreme temperatures.' },
+    { id: 'tankCleaned',     num: 33, text: 'If the tank was previously used for another product, has it been cleaned and certified prior to first AdBlue® fill?<sup>3</sup>', hasNA: true },
+    { id: 'sealedEquip',     num: 34, text: 'AdBlue® is dispensed using clean, sealed equipment dedicated for AdBlue®.' },
+    { id: 'nozzleClean',     num: 35, text: 'Dispensing nozzle is clean and free from dirt, grime or foreign matter.' },
+    { id: 'lidSealed',       num: 36, text: 'Is the tank lid closed and properly sealed?' },
+    { id: 'ventSystem',      num: 37, text: 'Tank is fitted with compliant venting system (dust-proof, splashback-proof and filtered).' },
+    { id: 'ventCondition',   num: 38, text: 'Tank vent(s) are properly sealed, in good condition, and not blocked by foreign materials.' },
+    { id: 'fillClean',       num: 39, text: 'The AdBlue® fill point is clean and free from dirt, grime and foreign matter.' },
+    { id: 'dustCap',         num: 40, text: 'The AdBlue® fill point is fitted with a dust cap.' },
   ],
   'e1': [
-    { id: 'photoGate',   num: 39, text: 'I have taken time-stamped photos of the site front gate/entrance.', scoreNeutral: true },
-    { id: 'photoTank',   num: 40, text: 'I have taken time-stamped photos of the delivery zone and AdBlue® tank/fill point.', scoreNeutral: true },
-    { id: 'nonCompComm', num: 41, text: 'Any identified non-compliances have been clearly communicated to the site representative, along with recommended corrective actions where applicable.', scoreNeutral: true },
+    { id: 'photoGate',   num: 41, text: 'I have taken time-stamped photos of the site front gate/entrance.', scoreNeutral: true },
+    { id: 'photoTank',   num: 42, text: 'I have taken time-stamped photos of the delivery zone and AdBlue® tank/fill point.', scoreNeutral: true },
+    { id: 'nonCompComm', num: 43, text: 'Any identified non-compliances have been clearly communicated to the site representative, along with recommended corrective actions where applicable.', scoreNeutral: true },
   ],
 };
 
@@ -2873,8 +2857,8 @@ function collectFormData() {
     accessClose: get('accessClose'),
     accessRestrictions: get('accessRestrictions'),
     open24hrs: document.getElementById('open24hrs')?.checked,
-    satDelivery: document.getElementById('satDelivery')?.checked || false,
-    sunDelivery: document.getElementById('sunDelivery')?.checked || false,
+    satDelivery: ynValues['satDelivery'] === 'Y',
+    sunDelivery: ynValues['sunDelivery'] === 'Y',
     maxVehicle: get('maxVehicle'),
     keyCode: get('keyCode','inductionDetails'),
     inductionDetails: get('inductionDetails'),
@@ -3344,8 +3328,6 @@ function updateAccessHours() {
   const open = document.getElementById('accessOpen').value;
   const close = document.getElementById('accessClose').value;
   const restrictions = document.getElementById('accessRestrictions').value.trim();
-  const sat = document.getElementById('satDelivery')?.checked;
-  const sun = document.getElementById('sunDelivery')?.checked;
 
   let result = '';
   if (open && close) {
@@ -3357,50 +3339,7 @@ function updateAccessHours() {
   }
   if (restrictions) result = result ? `${result} · ${restrictions}` : restrictions;
 
-  // Append weekend delivery info
-  const weekend = [sat ? 'Saturday ✓' : '', sun ? 'Sunday ✓' : ''].filter(Boolean).join(', ');
-  if (weekend) result = result ? `${result} · Weekend: ${weekend}` : `Weekend: ${weekend}`;
-  else if (sat === false && sun === false) {} // neither checked — no addition
-
   document.getElementById('accessHours').value = result;
-}
-
-function setWeekendYN(day, val) {
-  const checkboxId = day === 'sat' ? 'satDelivery' : 'sunDelivery';
-  const checkbox = document.getElementById(checkboxId);
-  if (checkbox) checkbox.checked = (val === 'Y');
-  const item = document.getElementById('yn-' + checkboxId);
-  if (item) {
-    item.classList.remove('yes','no');
-    item.classList.add(val === 'Y' ? 'yes' : 'no');
-    item.querySelectorAll('.yn-btn').forEach(b => {
-      b.classList.remove('active-y','active-n');
-      if (b.textContent === 'Y' && val === 'Y') b.classList.add('active-y');
-      if (b.textContent === 'N' && val === 'N') b.classList.add('active-n');
-    });
-  }
-  updateAccessHours();
-  updateWeekendStyle();
-  if (typeof updateProgress === 'function') updateProgress();
-}
-
-function updateWeekendStyle() {
-  const satEl = document.getElementById('satDelivery');
-  const sunEl = document.getElementById('sunDelivery');
-  const satPill = document.getElementById('satPill');
-  const sunPill = document.getElementById('sunPill');
-  if (satEl && satPill) {
-    satPill.style.background   = satEl.checked ? 'var(--green-light)' : 'white';
-    satPill.style.borderColor  = satEl.checked ? 'var(--green)' : 'var(--gray-light)';
-    satPill.style.color        = satEl.checked ? 'var(--green)' : '';
-    satPill.style.fontWeight   = satEl.checked ? '700' : '500';
-  }
-  if (sunEl && sunPill) {
-    sunPill.style.background   = sunEl.checked ? 'var(--green-light)' : 'white';
-    sunPill.style.borderColor  = sunEl.checked ? 'var(--green)' : 'var(--gray-light)';
-    sunPill.style.color        = sunEl.checked ? 'var(--green)' : '';
-    sunPill.style.fontWeight   = sunEl.checked ? '700' : '500';
-  }
 }
 
 function formatTime12(time24) {
@@ -3667,10 +3606,8 @@ async function generatePDF(returnDoc=false, presetData=null) {
 
   // ---- SECTION B ----
   sectionHeader('2. ACCESS & SITE SAFETY');
-  
-  const weekendLabel = [d.satDelivery ? 'Saturday ✓' : 'Saturday ✗', d.sunDelivery ? 'Sunday ✓' : 'Sunday ✗'].join('  ');
+
   twoFieldRow('Access Hours / Restrictions', d.accessHours, 'Maximum Vehicle Size', d.maxVehicle);
-  twoFieldRow('Weekend Delivery', weekendLabel, '', '');
   if (d.generalAccessNotes) fieldRow('General Site Access Notes', d.generalAccessNotes);
   ynQuestions['b1'].forEach(q => {
     ynRow(q.text, d.ynValues[q.id]);
@@ -5163,9 +5100,16 @@ function restoreAuditFormFields(data) {
     open24El.checked = !!data.open24hrs;
     toggle24hrs(open24El);
   }
-  if (typeof setWeekendYN === 'function') {
-    setWeekendYN('sat', data.satDelivery ? 'Y' : 'N');
-    setWeekendYN('sun', data.sunDelivery ? 'Y' : 'N');
+  // Sat/Sun are now standard Y/N questions (Q1/Q2) — restored via the
+  // standard ynValues loop below. Backward-compat: older saved files stored
+  // these as top-level booleans rather than inside ynValues, so seed them
+  // into data.ynValues here if not already present, before that loop runs.
+  if (!data.ynValues) data.ynValues = {};
+  if (data.ynValues['satDelivery'] === undefined && data.satDelivery !== undefined) {
+    data.ynValues['satDelivery'] = data.satDelivery ? 'Y' : 'N';
+  }
+  if (data.ynValues['sunDelivery'] === undefined && data.sunDelivery !== undefined) {
+    data.ynValues['sunDelivery'] = data.sunDelivery ? 'Y' : 'N';
   }
   setVal('maxVehicle', data.maxVehicle);
   setVal('keyCode', data.keyCode);
@@ -5407,13 +5351,12 @@ function clearForm() {
 
   // Reset access hours
   document.getElementById('open24hrs').checked = false;
-  ['yn-satDelivery','yn-sunDelivery'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) { el.classList.remove('yes','no'); el.querySelectorAll('.yn-btn').forEach(b => b.classList.remove('active-y','active-n')); }
-  });
-  const satCb = document.getElementById('satDelivery'); if(satCb) { satCb.checked = false; }
-  const sunCb = document.getElementById('sunDelivery'); if(sunCb) { sunCb.checked = false; }
-  updateWeekendStyle();
+  // Sat/Sun (Q1/Q2) already cleared by the generic .yn-item reset above —
+  // re-apply their "No" default, matching the same default used on page load
+  if (typeof setYN === 'function') {
+    setYN('satDelivery', 'N', 'b1', '');
+    setYN('sunDelivery', 'N', 'b1', '');
+  }
   document.getElementById('timeFields').classList.remove('hidden');
   document.getElementById('accessOpen').value = '';
   document.getElementById('accessClose').value = '';
@@ -5880,6 +5823,22 @@ function loadMudmapSatellite() {
   const resetTc = document.getElementById('mudmapTileCanvas');
   if (resetTc) resetTc.style.transform = '';
 
+  // Coordinate detection — if the field contains raw lat/lng (e.g. pasted
+  // straight from Google Maps), skip the address geocoder entirely and
+  // centre the map directly. Address remains the default/primary path;
+  // this only fires when the input clearly isn't a normal street address.
+  const coordMatch = addr.match(/^\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*$/);
+  if (coordMatch) {
+    const lat = parseFloat(coordMatch[1]);
+    const lng = parseFloat(coordMatch[2]);
+    if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+      const w = document.getElementById('mudmapWrap').offsetWidth;
+      renderOSMTile(lat, lng, 19, w, w);
+      showToast('📍 Centred on pasted coordinates');
+      return;
+    }
+  }
+
   // Use Google Maps JS API geocoder (CORS-safe, same engine as Google Maps app)
   const query = addr.includes('+') ? addr : addr + ', Australia'; // support Plus Codes
 
@@ -6101,6 +6060,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (el) el.style.display = 'none';
   });
   renderYNGroups();
+  // Sat/Sun (Q1/Q2) default to No on a fresh form, unlike every other
+  // Y/N question which starts genuinely unanswered — per Michael's spec
+  setYN('satDelivery', 'N', 'b1', '');
+  setYN('sunDelivery', 'N', 'b1', '');
   initMudmap();
   setMudmapTool('pan');
 
@@ -6123,11 +6086,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // works across any BDM/device) — triggered below via loadClientFromURL()
 
   loadClientFromURL();
-  // Force weekend/24hr checkboxes unchecked on load (prevents browser auto-restore)
-  const _sat = document.getElementById('satDelivery'); if(_sat) _sat.checked = false;
-  const _sun = document.getElementById('sunDelivery'); if(_sun) _sun.checked = false;
+  // Force 24hr checkbox unchecked on load (prevents browser auto-restore)
   const _24  = document.getElementById('open24hrs');   if(_24)  _24.checked = false;
-  updateWeekendStyle();
 
   updateProgress();
   setTimeout(updateFieldStates, 300);

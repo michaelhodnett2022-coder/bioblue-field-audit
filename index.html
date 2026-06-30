@@ -1348,6 +1348,11 @@
           <button class="gps-btn" onclick="getGPSLocation()">📍 Use GPS</button>
         </div>
         <div class="gps-status" id="gpsStatus"></div>
+        <div style="margin-top:8px;">
+          <label class="field-label" style="font-size:11px;">GPS Coordinates <span style="font-weight:400;">(auto-filled when satellite map loads)</span></label>
+          <input type="text" id="siteGPSCoords" readonly placeholder="Load the satellite map below to populate"
+            style="background:#f5f5f5;color:var(--gray-dark);font-family:monospace;font-size:13px;">
+        </div>
       </div>
 
       <div class="field-row three">
@@ -2849,6 +2854,7 @@ function collectFormData() {
     customerName: getCustomerName(),
     auditDate: get('auditDate'),
     siteAddress: get('siteAddress'),
+    siteGPSCoords: get('siteGPSCoords'),
     suburb: get('suburb'),
     state: get('state'),
     postcode: get('postcode'),
@@ -3198,7 +3204,7 @@ function autoFillCustomer(siteNum) {
 }
 
 function clearCustomerFields() {
-  ['siteAddress','suburb','postcode',
+  ['siteAddress','siteGPSCoords','suburb','postcode',
    'bizContactName','bizContactRole','bizContactEmail','bizContactPhone',
    'logContactName','logContactRole','logContactEmail','logContactPhone',
    'podEmail','podEmail2','podEmail3','_siteLocationName','_trackpodName','_descriptor','_generatedSiteName',
@@ -3625,8 +3631,14 @@ async function generatePDF(returnDoc=false, presetData=null) {
   twoFieldRow('Customer / Business Name', d.customerName, 'Date of Audit', d.auditDate);
   twoFieldRow('Site Number', d.siteNumber, 'Network', d.siteNetwork);
   fieldRow('Delivery Site Address', [d.siteAddress, d.suburb, d.state, d.postcode].filter(Boolean).join(', '));
-  twoFieldRow('Business Contact', (d.bizContactName||'—') + (d.bizContactRole ? ' \u2013 ' + d.bizContactRole : ''), 'Phone', d.bizContactPhone||'—');
-  twoFieldRow('Email', d.bizContactEmail||'—', 'Logistics Contact', d.logContactName||'—');
+  if (d.siteGPSCoords) fieldRow('GPS Coordinates', d.siteGPSCoords);
+  twoFieldRow('Site Contact', (d.bizContactName||'—') + (d.bizContactRole ? ' \u2013 ' + d.bizContactRole : ''), 'Phone', d.bizContactPhone||'—');
+  fieldRow('Email', d.bizContactEmail||'—');
+  twoFieldRow('Logistics Contact', (d.logContactName||'—') + (d.logContactRole ? ' \u2013 ' + d.logContactRole : ''), 'Phone', d.logContactPhone||'—');
+  fieldRow('Email', d.logContactEmail||'—');
+  if (d.podEmail) fieldRow('Proof of Delivery (POD) Email', d.podEmail);
+  if (d.podEmail2) fieldRow('Additional POD Email', d.podEmail2);
+  if (d.podEmail3) fieldRow('Additional POD Email', d.podEmail3);
 
   // ---- SECTION B ----
   sectionHeader('2. ACCESS & SITE SAFETY');
@@ -5097,6 +5109,7 @@ function restoreAuditFormFields(data) {
   // a saved snapshot's copy could be stale if Prospect was edited since)
   setVal('auditDate', data.auditDate);
   setVal('siteAddress', data.siteAddress);
+  setVal('siteGPSCoords', data.siteGPSCoords);
   setVal('suburb', data.suburb);
   setVal('postcode', data.postcode);
   if (data.state) {
@@ -5907,6 +5920,11 @@ function renderOSMTile(lat, lon, zoom, w, h) {
   mudmapCurrentLat = lat;
   mudmapCurrentLon = lon;
   mudmapCurrentZoom = zoom;
+
+  // Display GPS coordinates on the form — same source the map itself uses,
+  // so this always matches exactly where the satellite view is centred
+  const gpsField = document.getElementById('siteGPSCoords');
+  if (gpsField) gpsField.value = lat.toFixed(6) + ', ' + lon.toFixed(6);
 
   const wrap = document.getElementById('mudmapWrap');
   const tc = document.getElementById('mudmapTileCanvas');

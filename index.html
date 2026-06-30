@@ -1440,6 +1440,14 @@
         <input type="email" id="podEmail" placeholder="e.g. pod@company.com.au">
         <div style="font-size:11px;color:var(--gray-mid);margin-top:4px;">Shared with Admin form — fills automatically if already entered</div>
       </div>
+      <div class="field-group" style="margin-bottom:14px;">
+        <label class="field-label">Additional POD Email <span style="font-weight:400;font-size:10px;">(optional)</span></label>
+        <input type="email" id="podEmail2" placeholder="e.g. pod2@company.com.au">
+      </div>
+      <div class="field-group" style="margin-bottom:14px;">
+        <label class="field-label">Additional POD Email <span style="font-weight:400;font-size:10px;">(optional)</span></label>
+        <input type="email" id="podEmail3" placeholder="e.g. pod3@company.com.au">
+      </div>
 
     </div>
   </div>
@@ -2858,6 +2866,8 @@ function collectFormData() {
     logContactEmail: get('logContactEmail'),
     logContactPhone: get('logContactPhone'),
     podEmail:        get('podEmail'),
+    podEmail2:       get('podEmail2'),
+    podEmail3:       get('podEmail3'),
     // Backward compat aliases used by PDF/email
     siteContact:      get('bizContactName'),
     siteContactTitle: get('bizContactRole'),
@@ -3191,7 +3201,7 @@ function clearCustomerFields() {
   ['siteAddress','suburb','postcode',
    'bizContactName','bizContactRole','bizContactEmail','bizContactPhone',
    'logContactName','logContactRole','logContactEmail','logContactPhone',
-   'podEmail','_siteLocationName','_trackpodName','_descriptor','_generatedSiteName',
+   'podEmail','podEmail2','podEmail3','_siteLocationName','_trackpodName','_descriptor','_generatedSiteName',
    'tankVolume','safeFill','tankSerial','tankType','tankTypeOther','dipSystem','dipSystemOther',
    'siteNumber','siteNetwork'].forEach(id => setField(id, ''));
   document.getElementById('state').selectedIndex = 0;
@@ -5102,6 +5112,8 @@ function restoreAuditFormFields(data) {
   setVal('logContactEmail', data.logContactEmail);
   setVal('logContactPhone', data.logContactPhone);
   setVal('podEmail', data.podEmail);
+  setVal('podEmail2', data.podEmail2);
+  setVal('podEmail3', data.podEmail3);
   setVal('siteNumber', data.siteNumber);
   setVal('siteNetwork', data.siteNetwork);
 
@@ -5372,8 +5384,8 @@ function clearForm() {
   seedYNDefault('satDelivery', 'N');
   seedYNDefault('sunDelivery', 'N');
   document.getElementById('timeFields').classList.remove('hidden');
-  document.getElementById('accessOpen').value = '';
-  document.getElementById('accessClose').value = '';
+  document.getElementById('accessOpen').value = '00:00';
+  document.getElementById('accessClose').value = '00:00';
   document.getElementById('accessRestrictions').value = '';
   document.getElementById('accessHours').value = '';
 
@@ -5535,13 +5547,6 @@ function initMudmap() {
   function start(e) {
     e.preventDefault();
     [lastX, lastY] = getPos(e);
-
-    // TEMPORARY DIAGNOSTIC — remove once mud-map tool issue is confirmed fixed
-    if (!window._mudmapDiagShown) {
-      window._mudmapDiagShown = true;
-      const r = canvas.getBoundingClientRect();
-      showToast(`🔧 DIAG: tool=${mudmapTool} canvas=${canvas.width}x${canvas.height} rect=${Math.round(r.width)}x${Math.round(r.height)} lat=${mudmapCurrentLat}`, 6000);
-    }
 
     const tool = mudmapTool; // read fresh each time
 
@@ -6081,11 +6086,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const el = document.getElementById(id);
       if (el) el.style.display = 'none';
     });
-  } catch(e) { showToast('🔴 DIAG: card-hide failed — ' + e.message, 8000); }
+  } catch(e) { console.warn('Page-load: card-hide failed:', e.message); }
 
   try {
     renderYNGroups();
-  } catch(e) { showToast('🔴 DIAG: renderYNGroups failed — ' + e.message, 8000); }
+  } catch(e) { console.warn('Page-load: renderYNGroups failed:', e.message); }
 
   // Sat/Sun (Q1/Q2) default to No on a fresh form, unlike every other
   // Y/N question which starts genuinely unanswered — per Michael's spec.
@@ -6094,15 +6099,22 @@ document.addEventListener('DOMContentLoaded', () => {
   try {
     seedYNDefault('satDelivery', 'N');
     seedYNDefault('sunDelivery', 'N');
-  } catch(e) { showToast('🔴 DIAG: seedYNDefault failed — ' + e.message, 8000); }
+  } catch(e) { console.warn('Page-load: seedYNDefault failed:', e.message); }
 
   try {
     initMudmap();
-  } catch(e) { showToast('🔴 DIAG: initMudmap failed — ' + e.message, 8000); }
+  } catch(e) { console.warn('Page-load: initMudmap failed:', e.message); }
 
   try {
     setMudmapTool('pan');
-  } catch(e) { showToast('🔴 DIAG: setMudmapTool failed — ' + e.message, 8000); }
+  } catch(e) { console.warn('Page-load: setMudmapTool failed:', e.message); }
+
+  // Default access hours time spinners to 00:00 rather than relying on
+  // the browser's own native current-time behaviour for empty time inputs
+  try {
+    document.getElementById('accessOpen').value = '00:00';
+    document.getElementById('accessClose').value = '00:00';
+  } catch(e) { console.warn('Page-load: time defaults failed:', e.message); }
 
   // Auto-fill mud map address from site address field
   document.getElementById('siteAddress').addEventListener('input', syncMudmapAddress);
@@ -6248,6 +6260,8 @@ async function fetchClientDetails(clientId) {
       logContactEmail:   get('Logistics Email'),
       logContactPhone:   get('Logistics Phone'),
       podEmail:          get('POD Email'),
+      podEmail2:         get('POD Email 2'),
+      podEmail3:         get('POD Email 3'),
     };
 
     Object.entries(fields).forEach(([id, val]) => {
@@ -6476,7 +6490,7 @@ function repairClientRecordsHeaders(wb) {
     'Logistics Name','Logistics Role','Logistics Email','Logistics Phone',
     'Admin Contact Name','Admin Contact Role','Admin Contact Email','Admin Contact Phone',
     'Other Contact Label','Other Contact Name','Other Contact Role','Other Contact Email','Other Contact Phone',
-    'POD Email',
+    'POD Email','POD Email 2','POD Email 3',
     'Contact Name','Contact Title','Contact Mobile','Contact Email',
     'Product Interest','Current Supplier','Estimated Volume','Estimated Current Price','Active Products',
     'Is Distributor / Reseller','Additional Invoicing Emails','PO Required','PO Delivery Email',
@@ -6615,6 +6629,8 @@ async function updateClientRecordFromAudit(rootFolderId, clientId) {
       setCol('Logistics Email', auditData.logContactEmail);
       setCol('Logistics Phone', auditData.logContactPhone);
       setCol('POD Email', auditData.podEmail);
+      setCol('POD Email 2', auditData.podEmail2);
+      setCol('POD Email 3', auditData.podEmail3);
       setCol('BDM Email', auditData.auditorEmail);
       setCol('Max Vehicle Size', auditData.maxVehicle);
       setCol('Contact Name',   auditData.bizContactName);
@@ -6698,7 +6714,7 @@ async function getAdminSheetId(rootFolderId) {
     'Logistics Name','Logistics Role','Logistics Email','Logistics Phone',
     'Admin Contact Name','Admin Contact Role','Admin Contact Email','Admin Contact Phone',
     'Other Contact Label','Other Contact Name','Other Contact Role','Other Contact Email','Other Contact Phone',
-    'POD Email',
+    'POD Email','POD Email 2','POD Email 3',
     'Contact Name','Contact Title','Contact Mobile','Contact Email',
     'Product Interest','Current Supplier','Estimated Volume','Estimated Current Price','Active Products',
     'Is Distributor / Reseller','Additional Invoicing Emails','PO Required','PO Delivery Email',

@@ -6076,19 +6076,33 @@ document.addEventListener('DOMContentLoaded', () => {
   } catch(e) { console.warn('EmailJS not loaded:', e); }
 
   // Hide all section cards until audit type is selected
-  ['cardA','cardB','cardC','cardD','cardMudmap','cardPhotos','cardF','auditResultsPanel'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = 'none';
-  });
-  renderYNGroups();
+  try {
+    ['cardA','cardB','cardC','cardD','cardMudmap','cardPhotos','cardF','auditResultsPanel'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+  } catch(e) { showToast('🔴 DIAG: card-hide failed — ' + e.message, 8000); }
+
+  try {
+    renderYNGroups();
+  } catch(e) { showToast('🔴 DIAG: renderYNGroups failed — ' + e.message, 8000); }
+
   // Sat/Sun (Q1/Q2) default to No on a fresh form, unlike every other
   // Y/N question which starts genuinely unanswered — per Michael's spec.
   // Uses the lightweight seedYNDefault (not the full setYN) since this
   // runs before any audit type is selected / any section is visible.
-  seedYNDefault('satDelivery', 'N');
-  seedYNDefault('sunDelivery', 'N');
-  initMudmap();
-  setMudmapTool('pan');
+  try {
+    seedYNDefault('satDelivery', 'N');
+    seedYNDefault('sunDelivery', 'N');
+  } catch(e) { showToast('🔴 DIAG: seedYNDefault failed — ' + e.message, 8000); }
+
+  try {
+    initMudmap();
+  } catch(e) { showToast('🔴 DIAG: initMudmap failed — ' + e.message, 8000); }
+
+  try {
+    setMudmapTool('pan');
+  } catch(e) { showToast('🔴 DIAG: setMudmapTool failed — ' + e.message, 8000); }
 
   // Auto-fill mud map address from site address field
   document.getElementById('siteAddress').addEventListener('input', syncMudmapAddress);

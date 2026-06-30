@@ -5522,6 +5522,13 @@ function initMudmap() {
     e.preventDefault();
     [lastX, lastY] = getPos(e);
 
+    // TEMPORARY DIAGNOSTIC — remove once mud-map tool issue is confirmed fixed
+    if (!window._mudmapDiagShown) {
+      window._mudmapDiagShown = true;
+      const r = canvas.getBoundingClientRect();
+      showToast(`🔧 DIAG: tool=${mudmapTool} canvas=${canvas.width}x${canvas.height} rect=${Math.round(r.width)}x${Math.round(r.height)} lat=${mudmapCurrentLat}`, 6000);
+    }
+
     const tool = mudmapTool; // read fresh each time
 
     if (tool === 'pan') {

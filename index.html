@@ -1173,7 +1173,18 @@
 
   <div class="header-group">
     <div class="header-group-label">Client</div>
-    <a href="https://michaelhodnett2022-coder.github.io/bioblue-field-tools" class="btn btn-secondary btn-header-full">🔄 Change Client — Return to Field Tools Home Page</a>
+    <a href="https://michaelhodnett2022-coder.github.io/bioblue-field-tools" class="btn btn-header-full" style="
+        position:relative;padding-left:42px;
+        background:rgba(255,255,255,0.15);
+        color:white;border:1px solid rgba(255,255,255,0.3);
+      ">
+      <span style="position:absolute;left:7px;top:50%;transform:translateY(-50%);width:24px;height:24px;background:white;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+        <svg viewBox="0 0 24 24" width="15" height="15">
+          <polygon points="2,12 11,4 11,9.5 22,9.5 22,14.5 11,14.5 11,20" fill="#003466"/>
+        </svg>
+      </span>
+      <span>Change Client — Return to Field Tools Home Page</span>
+    </a>
   </div>
 
   <div class="header-group">
@@ -1348,6 +1359,11 @@
           <button class="gps-btn" onclick="getGPSLocation()">📍 Use GPS</button>
         </div>
         <div class="gps-status" id="gpsStatus"></div>
+        <div style="margin-top:8px;">
+          <label class="field-label" style="font-size:11px;">GPS Coordinates <span style="font-weight:400;">(auto-filled when satellite map loads)</span></label>
+          <input type="text" id="siteGPSCoords" readonly placeholder="Load the satellite map below to populate"
+            style="background:#f5f5f5;color:var(--gray-dark);font-family:monospace;font-size:13px;">
+        </div>
       </div>
 
       <div class="field-row three">
@@ -2849,6 +2865,7 @@ function collectFormData() {
     customerName: getCustomerName(),
     auditDate: get('auditDate'),
     siteAddress: get('siteAddress'),
+    siteGPSCoords: get('siteGPSCoords'),
     suburb: get('suburb'),
     state: get('state'),
     postcode: get('postcode'),
@@ -3198,7 +3215,7 @@ function autoFillCustomer(siteNum) {
 }
 
 function clearCustomerFields() {
-  ['siteAddress','suburb','postcode',
+  ['siteAddress','siteGPSCoords','suburb','postcode',
    'bizContactName','bizContactRole','bizContactEmail','bizContactPhone',
    'logContactName','logContactRole','logContactEmail','logContactPhone',
    'podEmail','podEmail2','podEmail3','_siteLocationName','_trackpodName','_descriptor','_generatedSiteName',
@@ -3378,47 +3395,27 @@ function formatTime12(time24) {
 // Reads EXIF orientation from iPhone photos and rotates canvas to fix
 // =====================================================================
 async function correctImageRotation(dataUrl, targetW, targetH) {
+  // Let the browser decode and apply EXIF orientation natively — modern
+  // Chrome and Safari both honour EXIF when loading an image, so drawing
+  // it straight to canvas gives us an already-correctly-oriented result
+  // without any manual transform math that can double-correct or miss edge cases.
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      getExifOrientation(dataUrl, (orientation) => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
 
-        const swap = orientation >= 5 && orientation <= 8;
+      // Use natural dimensions (EXIF-corrected by browser), capped to
+      // 2400px on the longest side to keep PDF file sizes reasonable
+      const MAX_PX = 2400;
+      const nw = img.naturalWidth;
+      const nh = img.naturalHeight;
+      const scale = Math.min(1, MAX_PX / Math.max(nw, nh));
+      canvas.width  = Math.round(nw * scale);
+      canvas.height = Math.round(nh * scale);
 
-        // Use FULL original resolution — let jsPDF handle display scaling
-        // Clamp to 2400px max to keep PDF size reasonable
-        const MAX_PX = 2400;
-        const nw = img.naturalWidth;
-        const nh = img.naturalHeight;
-        const scale = Math.min(1, MAX_PX / Math.max(nw, nh));
-        const fw = Math.round(nw * scale);
-        const fh = Math.round(nh * scale);
-
-        canvas.width  = swap ? fh : fw;
-        canvas.height = swap ? fw : fh;
-
-        ctx.save();
-        switch (orientation) {
-          case 2: ctx.transform(-1,0,0,1,canvas.width,0); break;
-          case 3: ctx.transform(-1,0,0,-1,canvas.width,canvas.height); break;
-          case 4: ctx.transform(1,0,0,-1,0,canvas.height); break;
-          case 5: ctx.transform(0,1,1,0,0,0); break;
-          case 6: ctx.transform(0,1,-1,0,canvas.height,0); break;
-          case 7: ctx.transform(0,-1,-1,0,canvas.height,canvas.width); break;
-          case 8: ctx.transform(0,-1,1,0,0,canvas.width); break;
-          default: break;
-        }
-
-        if (swap) {
-          ctx.drawImage(img, 0, 0, canvas.height, canvas.width);
-        } else {
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        }
-        ctx.restore();
-        resolve(canvas.toDataURL('image/jpeg', 0.92));
-      });
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', 0.92));
     };
     img.onerror = () => resolve(dataUrl);
     img.src = dataUrl;
@@ -3625,8 +3622,14 @@ async function generatePDF(returnDoc=false, presetData=null) {
   twoFieldRow('Customer / Business Name', d.customerName, 'Date of Audit', d.auditDate);
   twoFieldRow('Site Number', d.siteNumber, 'Network', d.siteNetwork);
   fieldRow('Delivery Site Address', [d.siteAddress, d.suburb, d.state, d.postcode].filter(Boolean).join(', '));
-  twoFieldRow('Business Contact', (d.bizContactName||'—') + (d.bizContactRole ? ' \u2013 ' + d.bizContactRole : ''), 'Phone', d.bizContactPhone||'—');
-  twoFieldRow('Email', d.bizContactEmail||'—', 'Logistics Contact', d.logContactName||'—');
+  if (d.siteGPSCoords) fieldRow('GPS Coordinates', d.siteGPSCoords);
+  twoFieldRow('Site Contact', (d.bizContactName||'—') + (d.bizContactRole ? ' \u2013 ' + d.bizContactRole : ''), 'Phone', d.bizContactPhone||'—');
+  fieldRow('Email', d.bizContactEmail||'—');
+  twoFieldRow('Logistics Contact', (d.logContactName||'—') + (d.logContactRole ? ' \u2013 ' + d.logContactRole : ''), 'Phone', d.logContactPhone||'—');
+  fieldRow('Email', d.logContactEmail||'—');
+  if (d.podEmail) fieldRow('Proof of Delivery (POD) Email', d.podEmail);
+  if (d.podEmail2) fieldRow('Additional POD Email', d.podEmail2);
+  if (d.podEmail3) fieldRow('Additional POD Email', d.podEmail3);
 
   // ---- SECTION B ----
   sectionHeader('2. ACCESS & SITE SAFETY');
@@ -3825,18 +3828,12 @@ async function generatePDF(returnDoc=false, presetData=null) {
     const captionH = 12; // tall enough for caption + timestamp
 
     for (let i = 0; i < photos.length; i++) {
-      // Detect photo orientation before layout
+      // Detect photo orientation — since correctImageRotation now uses
+      // browser-native decoding (which applies EXIF), naturalWidth/Height
+      // already reflect the correct orientation, no manual EXIF check needed
       const isPortrait = await new Promise(resolve => {
         const img = new Image();
-        img.onload = () => {
-          // Check EXIF to determine true orientation
-          getExifOrientation(photos[i].dataUrl, orientation => {
-            // Orientations 5-8 mean the image is rotated 90°, so portrait/landscape swaps
-            const rotated = orientation >= 5 && orientation <= 8;
-            const naturallyPortrait = img.naturalHeight > img.naturalWidth;
-            resolve(rotated ? !naturallyPortrait : naturallyPortrait);
-          });
-        };
+        img.onload = () => resolve(img.naturalHeight > img.naturalWidth);
         img.onerror = () => resolve(false);
         img.src = photos[i].dataUrl;
       });
@@ -5097,6 +5094,7 @@ function restoreAuditFormFields(data) {
   // a saved snapshot's copy could be stale if Prospect was edited since)
   setVal('auditDate', data.auditDate);
   setVal('siteAddress', data.siteAddress);
+  setVal('siteGPSCoords', data.siteGPSCoords);
   setVal('suburb', data.suburb);
   setVal('postcode', data.postcode);
   if (data.state) {
@@ -5908,6 +5906,11 @@ function renderOSMTile(lat, lon, zoom, w, h) {
   mudmapCurrentLon = lon;
   mudmapCurrentZoom = zoom;
 
+  // Display GPS coordinates on the form — same source the map itself uses,
+  // so this always matches exactly where the satellite view is centred
+  const gpsField = document.getElementById('siteGPSCoords');
+  if (gpsField) gpsField.value = lat.toFixed(6) + ', ' + lon.toFixed(6);
+
   const wrap = document.getElementById('mudmapWrap');
   const tc = document.getElementById('mudmapTileCanvas');
   const tctx = tc.getContext('2d');
@@ -6325,7 +6328,18 @@ function redirectToFieldTools(clientId) {
 // =====================================================================
 // GET OR CREATE CLIENT FOLDER IN DRIVE
 // =====================================================================
+// Session-level folder ID cache — keyed by "parentId::folderName".
+// Prevents multiple calls within the same session from each doing a fresh
+// Drive search and potentially creating duplicate folders due to Google
+// Drive's eventual consistency (a newly-created folder may not appear in
+// search results for a few hundred milliseconds, causing a second caller
+// to find nothing and create a second identical folder).
+const _folderIdCache = {};
+
 async function getOrCreateClientFolder(parentFolderId, folderName) {
+  const cacheKey = parentFolderId + '::' + folderName;
+  if (_folderIdCache[cacheKey]) return _folderIdCache[cacheKey];
+
   // Search for existing folder with this name
   const searchRes = await fetch(
     `https://www.googleapis.com/drive/v3/files?q=name='${folderName.replace(/'/g,"\\'")}' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name)`,
@@ -6333,7 +6347,8 @@ async function getOrCreateClientFolder(parentFolderId, folderName) {
   );
   const searchData = await searchRes.json();
   if (searchData.files && searchData.files.length > 0) {
-    return searchData.files[0].id;
+    _folderIdCache[cacheKey] = searchData.files[0].id;
+    return _folderIdCache[cacheKey];
   }
   // Create new folder
   const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
@@ -6342,7 +6357,8 @@ async function getOrCreateClientFolder(parentFolderId, folderName) {
     body: JSON.stringify({ name: folderName, mimeType: 'application/vnd.google-apps.folder', parents: [parentFolderId] })
   });
   const created = await createRes.json();
-  return created.id;
+  _folderIdCache[cacheKey] = created.id;
+  return _folderIdCache[cacheKey];
 }
 
 // =====================================================================

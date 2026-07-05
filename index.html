@@ -3793,6 +3793,7 @@ async function generatePDF(returnDoc=false, presetData=null) {
   y = margin;
   sectionHeader('8. SITE MUD MAP — TRUCK ROUTE & ADBLUE\u00ae TANK LOCATION');
   const mudmapData = getMudmapDataUrl();
+  let mudmapDrawFailed = false;
   if (mudmapData) {
     const mapW = contentW;
     const mapH = contentW; // square
@@ -3801,12 +3802,20 @@ async function generatePDF(returnDoc=false, presetData=null) {
       doc.setDrawColor(...BLUE_LIGHT);
       doc.setLineWidth(0.3);
       doc.rect(margin, y, mapW, mapH);
-    } catch(e) {}
+    } catch(e) {
+      console.error('Mud map image failed to embed in PDF:', e);
+      mudmapDrawFailed = true;
+    }
     y += mapH + 4;
     doc.setFontSize(7);
     doc.setFont('helvetica','italic');
     doc.setTextColor(...GRAY);
-    doc.text('Red lines indicate truck entry/exit route. Blue dot indicates AdBlue\u00ae tank location.', margin, y);
+    doc.text(
+      mudmapDrawFailed
+        ? 'Map could not be embedded in this PDF — the site visit was recorded but the image failed to render.'
+        : 'Red lines indicate truck entry/exit route. Blue dot indicates AdBlue\u00ae tank location.',
+      margin, y
+    );
     y += 8;
   } else {
     doc.setFillColor(...GRAY_LIGHT);
@@ -6006,11 +6015,18 @@ function getMudmapDataUrl() {
   const drawCanvas = document.getElementById('mudmapCanvas');
   const tileCanvas = document.getElementById('mudmapTileCanvas');
 
-  // Check if drawing canvas has anything on it
+  // Only treat the map as "not completed" if there's neither a loaded
+  // satellite tile NOR any drawn annotations. Previously this checked ONLY
+  // the drawing (annotation) canvas for blankness — meaning a perfectly
+  // loaded satellite map got silently discarded whenever the BDM hadn't
+  // drawn a route/tank marker on top of it, even though the map itself
+  // was there and worth including on the PDF.
   const blank = document.createElement('canvas');
   blank.width = drawCanvas.width;
   blank.height = drawCanvas.height;
-  if (drawCanvas.toDataURL() === blank.toDataURL()) return null;
+  const drawIsBlank = drawCanvas.toDataURL() === blank.toDataURL();
+  const tileIsEmpty = !tileCanvas || tileCanvas.width === 0 || tileCanvas.height === 0;
+  if (drawIsBlank && tileIsEmpty) return null;
 
   const wrap = document.getElementById('mudmapWrap');
   const w = wrap.offsetWidth;

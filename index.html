@@ -4393,7 +4393,7 @@ async function uploadAndSend() {
       driveLink = uploaded.webViewLink;
       _auditPdfFileId = uploaded.id;
       // Save JSON data file in its own subfolder, not loose alongside the PDF
-      const _jsonFolderId = await getOrCreateClientFolder(_auditClientFolderId, 'Audit Data');
+      const _jsonFolderId = await getAuditJsonFolder(_auditClientFolderId);
       // Find any existing JSON for this client first — same suffix-search pattern
       // the PDF already uses above — so a fresh "Load Client" submission also
       // overwrites correctly, not just the Recall Past Audit edit path
@@ -4966,7 +4966,7 @@ async function checkForAuditDraft(rootFolderId, clientId) {
     const clientFolderId = await getClientFolderFromRecord(rootFolderId, clientId, folderName);
     if (!clientFolderId) return;
     // JSON backups live in their own subfolder, not loose alongside the PDF
-    const jsonFolderId = await getOrCreateClientFolder(clientFolderId, 'Audit Data');
+    const jsonFolderId = await getAuditJsonFolder(clientFolderId);
     const sr = await fetch(
       `https://www.googleapis.com/drive/v3/files?q=name='${fileName}' and '${jsonFolderId}' in parents and trashed=false&fields=files(id,modifiedTime)`,
       { headers: { Authorization: `Bearer ${gdriveToken}` } }
@@ -5016,7 +5016,7 @@ async function checkForExistingAuditSubmission(rootFolderId, clientId) {
     const folderName = getCustomerName() || '';
     const clientFolderId = await getClientFolderFromRecord(rootFolderId, clientId, folderName);
     if (!clientFolderId) return;
-    const jsonFolderId = await getOrCreateClientFolder(clientFolderId, 'Audit Data');
+    const jsonFolderId = await getAuditJsonFolder(clientFolderId);
     const sr = await fetch(
       `https://www.googleapis.com/drive/v3/files?q=name contains '_data.json' and '${jsonFolderId}' in parents and trashed=false&fields=files(id,modifiedTime)`,
       { headers: { Authorization: `Bearer ${gdriveToken}` } }
@@ -5050,7 +5050,7 @@ async function saveDraft() {
     const clientFolderId = await getClientFolderFromRecord(rootFolderId, clientId, folderName);
     if (!clientFolderId) throw new Error('Could not find client folder');
     // JSON backups live in their own subfolder, not loose alongside the PDF
-    const jsonFolderId = await getOrCreateClientFolder(clientFolderId, 'Audit Data');
+    const jsonFolderId = await getAuditJsonFolder(clientFolderId);
 
     const data = collectFormData();
     const fileName = `BB_Audit_${clientId}.json`;
@@ -6352,6 +6352,21 @@ function redirectToFieldTools(clientId) {
 // search results for a few hundred milliseconds, causing a second caller
 // to find nothing and create a second identical folder).
 const _folderIdCache = {};
+
+// Named constant — previously this folder name was hardcoded as a literal
+// string in 4 separate places, an inconsistency worth fixing while touching
+// this code anyway. Renamed "Audit Data" -> "Bulk Audit Data" to distinguish
+// it clearly from Packaged's JSON folder.
+const AUDIT_JSON_SUBFOLDER = 'Bulk Audit Data';
+
+// Consolidates JSON subfolders under one "Data" parent for tidiness (Fresh
+// Clients Only — existing clients keep using their current flat structure,
+// since getOrCreateClientFolder will simply keep finding their existing
+// subfolder at the old location; only brand-new subfolders go under Data/).
+async function getAuditJsonFolder(clientFolderId) {
+  const dataFolderId = await getOrCreateClientFolder(clientFolderId, 'Data');
+  return await getOrCreateClientFolder(dataFolderId, AUDIT_JSON_SUBFOLDER);
+}
 
 async function getOrCreateClientFolder(parentFolderId, folderName) {
   const cacheKey = parentFolderId + '::' + folderName;

@@ -4412,6 +4412,29 @@ async function uploadAndSend() {
       showToast('⚠️ Log update failed: ' + logErr.message, 4000);
     }
 
+    // Driver Audit Index — share the PDF read-only + log it so drivers can find it.
+    // Non-fatal: a failure here must never block the audit submission itself.
+    if (_auditPdfFileId) {
+      showToast('🚚 Updating driver index...');
+      try {
+        await sharePdfPublicly(_auditPdfFileId);
+        await upsertDriverIndexEntry(folderId, {
+          driveFolderId: _auditClientFolderId,
+          clientId:   _auditClientId || '',
+          siteName:   d.generatedSiteName || d.siteName || d.customerName || 'Unknown Site',
+          suburb:     d.suburb || '',
+          state:      d.state || '',
+          auditDate:  d.auditDate || '',
+          pdfFileId:  _auditPdfFileId,
+          pdfLink:    `https://drive.google.com/file/d/${_auditPdfFileId}/view`,
+          loggedAt:   new Date().toISOString()
+        });
+      } catch(driverIdxErr) {
+        console.error('Driver Audit Index update failed:', driverIdxErr);
+        showToast('⚠️ Driver index update failed: ' + driverIdxErr.message, 4000);
+      }
+    }
+
     // Update client record — tick Site Audit ✓ + set Record Status
     showToast('📊 Updating client record...');
     const _auditRecordResult = await updateClientRecordFromAudit(folderId, _auditClientId);
@@ -6803,6 +6826,136 @@ async function getAdminSheetId(rootFolderId) {
     { method:'POST', headers:{ Authorization:`Bearer ${gdriveToken}` }, body:form });
   _adminSheetIdCache = (await up.json()).id;
   return _adminSheetIdCache;
+}
+
+// =====================================================================
+// DRIVER AUDIT INDEX — separate, minimal file (NOT part of Client Records)
+// so its "anyone with the link" sharing can never expose pricing, contacts,
+// or opportunity notes. Lives in ADMIN DATA - DO NOT REMOVE like the other
+// shared infra files, but its own file-level sharing is independent of
+// that folder's (private) permissions — same mechanism used for the PDFs.
+// =====================================================================
+const DRIVER_INDEX_FILENAME = 'Driver_Audit_Index.json';
+let _driverIndexFileIdCache = null;
+
+async function getDriverIndexFileId(rootFolderId) {
+  if (_driverIndexFileIdCache) return _driverIndexFileIdCache;
+
+  // Reuse the same ADMIN DATA - DO NOT REMOVE folder as Client Records
+  let adminFolderId = null;
+  const afr = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=name='ADMIN DATA - DO NOT REMOVE' and '${rootFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id)`,
+    { headers: { Authorization: `Bearer ${gdriveToken}` } }
+  );
+  const afd = await afr.json();
+  if (afd.files && afd.files.length) {
+    adminFolderId = afd.files[0].id;
+  } else {
+    const cr = await fetch('https://www.googleapis.com/drive/v3/files', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${gdriveToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'ADMIN DATA - DO NOT REMOVE', mimeType: 'application/vnd.google-apps.folder', parents: [rootFolderId] })
+    });
+    adminFolderId = (await cr.json()).id;
+  }
+
+  const sr = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=name='${DRIVER_INDEX_FILENAME}' and '${adminFolderId}' in parents and trashed=false&fields=files(id)`,
+    { headers: { Authorization: `Bearer ${gdriveToken}` } }
+  );
+  const sd = await sr.json();
+  if (sd.files && sd.files.length) {
+    _driverIndexFileIdCache = sd.files[0].id;
+    return _driverIndexFileIdCache;
+  }
+
+  // Not found — create a fresh, empty index file
+  const blob = new Blob([JSON.stringify([])], { type: 'application/json' });
+  const form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify({ name: DRIVER_INDEX_FILENAME, parents: [adminFolderId] })], { type: 'application/json' }));
+  form.append('file', blob, DRIVER_INDEX_FILENAME);
+  const up = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
+    { method: 'POST', headers: { Authorization: `Bearer ${gdriveToken}` }, body: form });
+  const newId = (await up.json()).id;
+
+  // Set this file's own sharing to "anyone with the link — viewer" once, at
+  // creation. This is independent of the ADMIN DATA folder's permissions,
+  // which stay exactly as private as they are now.
+  await fetch(`https://www.googleapis.com/drive/v3/files/${newId}/permissions`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${gdriveToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role: 'reader', type: 'anyone' })
+  }).catch(e => console.warn('Driver index sharing setup failed (non-fatal):', e.message));
+
+  _driverIndexFileIdCache = newId;
+  return _driverIndexFileIdCache;
+}
+
+// Share a single audit PDF as "anyone with the link — viewer", independent
+// of its client folder's (private) permissions. Skips if already shared,
+// so resubmitting/overwriting the same audit doesn't stack up permissions.
+async function sharePdfPublicly(fileId) {
+  const listRes = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}/permissions?fields=permissions(id,type,role)`,
+    { headers: { Authorization: `Bearer ${gdriveToken}` } }
+  );
+  const listData = await listRes.json();
+  const alreadyShared = (listData.permissions || []).some(p => p.type === 'anyone' && p.role === 'reader');
+  if (alreadyShared) return;
+
+  await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${gdriveToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role: 'reader', type: 'anyone' })
+  });
+}
+
+// Upsert the Driver Audit Index. Drivers only ever need the CURRENT audit —
+// Site Audit overwrites the same PDF/JSON in place on every resubmission, so
+// there is no historical PDF behind an old entry to preserve. One live row
+// per site, replaced whenever that site is re-audited. Read-modify-write on
+// a small JSON file — same risk profile as the rest of this codebase's Drive
+// writes (e.g. Client Records), not a hardened multi-writer lock. Audit
+// submissions are infrequent enough that a true simultaneous collision is
+// very unlikely.
+async function upsertDriverIndexEntry(rootFolderId, entry) {
+  const fileId = await getDriverIndexFileId(rootFolderId);
+  let list = [];
+  try {
+    const dl = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+      { headers: { Authorization: `Bearer ${gdriveToken}` } });
+    if (dl.ok) {
+      const text = await dl.text();
+      list = text ? JSON.parse(text) : [];
+      if (!Array.isArray(list)) list = [];
+    }
+  } catch(e) {
+    console.warn('Driver index read failed, starting fresh list (non-fatal):', e.message);
+    list = [];
+  }
+
+  // Match on the client's Drive folder ID when available — always present
+  // and stable, unlike clientId (never stored in the submitted JSON) or
+  // siteName (can be edited/renamed). Falls back to clientId, then a
+  // case-insensitive siteName match, for any entry missing the newer field.
+  const idx = list.findIndex(e =>
+    (entry.driveFolderId && e.driveFolderId === entry.driveFolderId) ||
+    (!entry.driveFolderId && entry.clientId && e.clientId === entry.clientId) ||
+    (!entry.driveFolderId && !entry.clientId && (e.siteName||'').toLowerCase() === (entry.siteName||'').toLowerCase())
+  );
+  if (idx >= 0) {
+    list[idx] = entry;
+  } else {
+    list.push(entry);
+  }
+
+  const blob = new Blob([JSON.stringify(list)], { type: 'application/json' });
+  const form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify({})], { type: 'application/json' }));
+  form.append('file', blob, DRIVER_INDEX_FILENAME);
+  const up = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart&fields=id`,
+    { method: 'PATCH', headers: { Authorization: `Bearer ${gdriveToken}` }, body: form });
+  if (!up.ok) throw new Error(`Driver index write failed (${up.status})`);
 }
 
 // Pre-fill retry — shown if Drive token unavailable on form load

@@ -4375,6 +4375,7 @@ async function uploadAndSend() {
 
     // Upload PDF into client folder — overwrite existing file of same name, never duplicate
     const _existingAuditFileId = await findExistingFile('.Audit.pdf', _auditClientFolderId);
+    console.log('[Audit submit diagnostic] client folder ID:', _auditClientFolderId, '| existing real PDF found:', _existingAuditFileId || '(none — will create new)');
     const pdfForm = new FormData();
     let upRes;
     if (_existingAuditFileId) {
@@ -4393,6 +4394,7 @@ async function uploadAndSend() {
     if (uploaded.id) {
       driveLink = uploaded.webViewLink;
       _auditPdfFileId = uploaded.id;
+      console.log('[Audit submit diagnostic] REAL PDF confirmed by Drive — id:', uploaded.id, '| name:', baseName + '.pdf', '| link:', uploaded.webViewLink);
       // Self-heal the Client Records "Drive Folder ID" column so future
       // lookups for this client use the fast direct path instead of falling
       // back to a name-search every time — non-fatal if it fails.
@@ -4438,7 +4440,9 @@ async function uploadAndSend() {
     // submission — a leftover draft PDF should never be found again once
     // the real submission has succeeded.
     findExistingFile('.Audit.DRAFT.pdf', _auditClientFolderId).then(draftPdfId => {
+      console.log('[Audit submit diagnostic] draft PDF cleanup search — folder:', _auditClientFolderId, '| found:', draftPdfId || '(none)');
       if (draftPdfId) {
+        console.log('[Audit submit diagnostic] deleting draft PDF id:', draftPdfId, '(real PDF id was:', _auditPdfFileId, '— these must NOT match)');
         fetch(`https://www.googleapis.com/drive/v3/files/${draftPdfId}`,
           { method: 'DELETE', headers: { Authorization: `Bearer ${gdriveToken}` } })
           .catch(e => console.warn('Draft PDF cleanup failed (non-fatal):', e.message));

@@ -4373,8 +4373,25 @@ async function uploadAndSend() {
     showToast('📁 Finding client folder...');
     const _auditClientFolderId = await getClientFolderFromRecord(folderId, _auditClientId, _auditFolderName);
 
-    // Upload PDF into client folder — overwrite existing file of same name, never duplicate
-    const _existingAuditFileId = await findExistingFile('.Audit.pdf', _auditClientFolderId);
+    // Upload PDF into client folder — overwrite existing file of same name, never duplicate.
+    // Uses an EXACT name match here, not findExistingFile's "contains" search — Drive's
+    // contains operator matches individual word-tokens anywhere in the filename, not as
+    // a contiguous phrase, so a "contains '.Audit.pdf'" search was incorrectly matching
+    // "{SiteName}.Audit.DRAFT.pdf" too (both share the "Audit" and "pdf" tokens). That
+    // caused real submissions to silently overwrite the draft file's content in place
+    // instead of creating a genuinely new one — which then got deleted by the draft
+    // cleanup below, since it still carried the draft's filename.
+    const _realAuditPdfName = baseName + '.pdf';
+    const _existingAuditFileId = await (async () => {
+      try {
+        const sr = await fetch(
+          `https://www.googleapis.com/drive/v3/files?q=name='${_realAuditPdfName.replace(/'/g,"\\'")}' and '${_auditClientFolderId}' in parents and trashed=false&fields=files(id)`,
+          { headers: { Authorization: `Bearer ${gdriveToken}` } }
+        );
+        const sd = await sr.json();
+        return (sd.files && sd.files.length) ? sd.files[0].id : null;
+      } catch(e) { console.warn('Existing real PDF lookup failed:', e.message); return null; }
+    })();
     console.log('[Audit submit diagnostic] client folder ID:', _auditClientFolderId, '| existing real PDF found:', _existingAuditFileId || '(none — will create new)');
     const pdfForm = new FormData();
     let upRes;

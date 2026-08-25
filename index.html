@@ -2970,9 +2970,9 @@ function setAuditTypeRadio(value) {
 function applyAuditType(type) {
   // Sections visible for each audit type
   // Full: all sections
-  // Offsite: 1=cardA, 2=cardB, 4=cardC, 8=cardPhotos
+  // Offsite: 1=cardA, 2=cardB, 4=cardC, 8=cardPhotos, 11=cardF (auditor sign-off)
   const allCards    = ['cardA','cardB','cardC','cardD','cardMudmap','cardPhotos','cardF','auditResultsPanel'];
-  const offsiteCards = ['cardA','cardB','cardC','cardMudmap','cardPhotos'];
+  const offsiteCards = ['cardA','cardB','cardC','cardMudmap','cardPhotos','cardF'];
 
   if (!type) {
     // No selection — hide everything except hero

@@ -2924,6 +2924,17 @@ function collectFormData() {
     // E/F
     photoGateDone: document.getElementById('photoGateDone')?.checked,
     photoTankDone: document.getElementById('photoTankDone')?.checked,
+    // Photos — already flat, already resized/compressed at capture time
+    // (see correctImageRotation), so nothing new to bake in here; just
+    // carrying that existing data through to the saved JSON so reopening
+    // an audit doesn't lose them. Drops the in-memory File object (not
+    // JSON-serialisable and not needed for redisplay).
+    photos: photos.map(p => ({ dataUrl: p.dataUrl, caption: p.caption, timestamp: p.timestamp })),
+    // Mud map — reuses the exact same flattened composite (satellite +
+    // burned-in arrows/dots) that the PDF already builds, so what gets
+    // saved is identical to what was last exported. null if the map is
+    // untouched (matches getMudmapDataUrl's own "not completed" check).
+    mudmapImage: getMudmapDataUrl(),
     auditorName: get('auditorName'),
     auditorTitle: get('auditorTitle'),
     auditorEmail: get('auditorEmail'),
@@ -5180,17 +5191,31 @@ function restoreAuditFormFields(data) {
   setVal('tankLocationNotes', data.tankLocationNotes);
   setVal('correctiveActions', data.correctiveActions);
 
-  // Photo checkboxes (whether the gate/tank photo steps were completed —
-  // does not restore the photos themselves, which are deliberately excluded)
+  // Photo checkboxes (whether the gate/tank photo steps were completed)
   const pgEl = document.getElementById('photoGateDone');
   const ptEl = document.getElementById('photoTankDone');
   if (pgEl) pgEl.checked = !!data.photoGateDone;
   if (ptEl) ptEl.checked = !!data.photoTankDone;
 
-  // Mud map address — sync from restored site address (the drawing itself
-  // is NOT recoverable, see banked limitation; this just re-fills the address)
+  // Photos — restore the saved dataUrls/captions back into the working
+  // array and redraw the gallery, so editing one question doesn't mean
+  // re-taking every photo. Only replaces the in-memory array when the
+  // saved data actually has photos, so an older saved audit with no
+  // photos field doesn't wipe anything already added this session.
+  if (Array.isArray(data.photos)) {
+    photos.length = 0;
+    data.photos.forEach(p => photos.push({ dataUrl: p.dataUrl, caption: p.caption, timestamp: p.timestamp }));
+    renderPhotos();
+  }
+
+  // Mud map — restore the flattened snapshot saved at last save (see
+  // collectFormData's mudmapImage). It's drawn back as a plain static
+  // picture filling the viewport; any further annotations go on the
+  // transparent drawing layer on top of it. For a genuine blank-slate
+  // restart, use "🔄 Reset" in the map toolbar — clears both layers.
   const mmEl = document.getElementById('mudmapAddress');
   if (mmEl && data.siteAddress) mmEl.value = [data.siteAddress, data.suburb, data.postcode].filter(Boolean).join(', ');
+  if (data.mudmapImage) restoreMudmapSnapshot(data.mudmapImage);
 
   // Section E/F — auditor, rep, email
   setVal('auditorName', data.auditorName);
@@ -5801,6 +5826,56 @@ function resetMudmapFull() {
   if (placeholder) placeholder.style.display = 'flex';
 
   showToast('🗺️ Map reset');
+}
+
+// Draws a previously-saved flattened mud map (see collectFormData's
+// mudmapImage) back onto the tile canvas as a plain static picture filling
+// the viewport — no pan grid, no live tile offsets, since it's a frozen
+// snapshot rather than a fresh satellite load. The drawing layer on top
+// is left clear so further annotations are fully editable; only the
+// baked-in history from before the snapshot can't be individually undone.
+function restoreMudmapSnapshot(dataUrl) {
+  const wrap = document.getElementById('mudmapWrap');
+  const tc = document.getElementById('mudmapTileCanvas');
+  const dc = document.getElementById('mudmapCanvas');
+  const placeholder = document.getElementById('mudmapPlaceholder');
+  if (!wrap || !tc || !dc) return;
+
+  const w = wrap.offsetWidth;
+  const h = w; // square — matches getMudmapDataUrl's own output
+
+  tileOffsetX = 0;
+  tileOffsetY = 0;
+  arrowFirstTap = null;
+  mudmapHistory = [];
+  tc.style.transform = '';
+  tc.style.left = '0px';
+  tc.style.top = '0px';
+  tc.width = w;
+  tc.height = h;
+  tc.style.width = w + 'px';
+  tc.style.height = h + 'px';
+
+  const tctx = tc.getContext('2d');
+  const img = new Image();
+  img.onload = () => {
+    tctx.drawImage(img, 0, 0, w, h);
+    wrap.style.height = h + 'px';
+    if (placeholder) placeholder.style.display = 'none';
+  };
+  img.src = dataUrl;
+
+  // Drawing (annotation) layer — resized to match and left transparent,
+  // same resize convention used elsewhere (setting width/height resets
+  // the canvas and its transform, so the scale is reapplied after).
+  dc.width  = w * window.devicePixelRatio;
+  dc.height = h * window.devicePixelRatio;
+  dc.style.width  = '100%';
+  dc.style.height = h + 'px';
+  dc.style.left = '0';
+  dc.style.top  = '0';
+  const dctx = dc.getContext('2d');
+  dctx.scale(window.devicePixelRatio, window.devicePixelRatio);
 }
 
 function loadMudmapSatellite() {

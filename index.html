@@ -2033,9 +2033,11 @@
 <!-- MODAL -->
 <div class="modal-overlay" id="submitModal">
   <div class="modal-box">
-    <h3>✅ Form Submitted</h3>
+    <h3 id="modalTitle">✅ Form Submitted</h3>
     <p id="modalMsg" style="white-space:pre-line;">The PDF has been generated. Your email client will open with the PDF attached. Please send to complete submission.</p>
     <div class="modal-actions">
+      <button class="btn btn-primary" id="retryUploadBtn" onclick="closeModal();uploadAndSend()"
+        style="background:#b91c1c;color:white;display:none;">↻ Retry Upload</button>
       <button class="btn btn-primary" onclick="closeModal()">Close</button>
       <button class="btn btn-primary" id="returnToFieldToolsBtn" onclick="doReturnToFieldTools()"
         style="background:#003466;color:white;display:none;">← Field Tools</button>
@@ -4313,43 +4315,21 @@ async function uploadAndSend() {
 
   // 4. Google Drive upload
   let driveLink = null;
+  let driveFailMsg = '';
   try {
     showToast('☁️ Connecting to Google...');
     // Check Google API is loaded
     if (typeof google === 'undefined' || !google?.accounts?.oauth2) {
       throw new Error('Google API not loaded — check internet connection and reload the page');
     }
-    if (!gdriveToken) {
-      await new Promise((resolve, reject) => {
-        try {
-          const client = google.accounts.oauth2.initTokenClient({
-            client_id: GDRIVE_CLIENT_ID,
-            scope: 'https://www.googleapis.com/auth/drive.file',
-            callback: (response) => {
-              if (response && response.access_token) {
-                gdriveToken = response.access_token;
-                resolve();
-              } else {
-                const err = response?.error || 'Sign-in failed or was cancelled';
-                reject(new Error(err));
-              }
-            },
-            error_callback: (err) => {
-              reject(new Error(err?.message || 'Google sign-in popup was blocked or failed'));
-            }
-          });
-          client.requestAccessToken({ prompt: '' });
-        } catch(e) {
-          reject(new Error('Google API not loaded: ' + e.message));
-        }
-      });
-    }
+    await getDriveToken();
 
     // Find/create BioBlue Audits folder
     const folderRes = await fetch(
       `https://www.googleapis.com/drive/v3/files?q=name='${GDRIVE_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id)`,
       { headers: { Authorization: `Bearer ${gdriveToken}` } }
     );
+    if (!folderRes.ok) throw new Error(`Drive folder lookup failed (${folderRes.status}) — ${folderRes.status === 401 ? 'Google sign-in expired' : 'please retry'}`);
     const folderData = await folderRes.json();
     let folderId;
     if (folderData.files && folderData.files.length > 0) {
@@ -4367,6 +4347,7 @@ async function uploadAndSend() {
       `https://www.googleapis.com/drive/v3/files?q=name='Excel' and '${folderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id)`,
       { headers: { Authorization: `Bearer ${gdriveToken}` } }
     );
+    if (!xlFolderRes.ok) throw new Error(`Drive folder lookup failed (${xlFolderRes.status}) — please retry`);
     const xlFolderData = await xlFolderRes.json();
     let xlFolderId;
     if (xlFolderData.files && xlFolderData.files.length > 0) {
@@ -4481,6 +4462,7 @@ async function uploadAndSend() {
     console.error('Drive upload error:', driveErr);
     gdriveToken = null;
     const msg = driveErr.message || 'Unknown error';
+    driveFailMsg = msg;
     const isPopupBlocked = msg.toLowerCase().includes('popup') || msg.toLowerCase().includes('blocked') || msg.toLowerCase().includes('cancelled');
     showToast(isPopupBlocked
       ? '\u26a0\ufe0f Google sign-in blocked \u2014 allow popups in browser settings and try again'
@@ -4536,20 +4518,42 @@ async function uploadAndSend() {
     });
 
     try { localStorage.setItem('bioblue_last_submission', JSON.stringify(d)); } catch(e) {}
-    document.getElementById('modalMsg').textContent =
-      `✅ Audit submitted!\n\n🆔 Document Ref: ${d.docRef||'—'}\n📄 PDF + Excel saved to device\n☁️ Files uploaded to Google Drive\n📧 Email notification sent\n${driveLink ? '\nDrive link:\n' + driveLink : ''}`;
-    document.getElementById('submitModal').classList.add('active');
-    showReturnButton();
-    showToast('✅ Audit complete!');
+    showSubmitResult({ docRef: d.docRef, driveLink, driveFailMsg });
+    showToast(driveLink ? '✅ Audit complete!' : '⚠️ NOT saved to Google Drive — tap Retry Upload');
 
   } catch(err) {
     const errMsg = err?.text || err?.message || 'Unknown error';
-    document.getElementById('modalMsg').textContent =
-      `⚠️ Email failed: ${errMsg}\n\nFiles saved:\n• PDF + Excel on device\n${driveLink ? '• Files on Google Drive\n' : ''}`;
-    document.getElementById('submitModal').classList.add('active');
-    showReturnButton();
-    showToast('⚠️ Email failed — files saved to Drive & device');
+    showSubmitResult({ docRef: d.docRef, driveLink, driveFailMsg, emailErr: errMsg });
   }
+}
+
+function showSubmitResult({ docRef, driveLink, driveFailMsg, emailErr }) {
+  const title = document.getElementById('modalTitle');
+  const msg   = document.getElementById('modalMsg');
+  const retry = document.getElementById('retryUploadBtn');
+  if (!driveLink) {
+    // The PDF is NOT in Drive. Say so plainly and keep everything on screen for a retry.
+    if (title) { title.textContent = '⚠️ NOT saved to Google Drive'; title.style.color = '#b91c1c'; }
+    msg.textContent =
+      'Your audit has NOT been saved to Google Drive.\n\n' +
+      (driveFailMsg ? 'Reason: ' + driveFailMsg + '\n\n' : '') +
+      'Everything is still on this page — photos, map and answers. Check your connection, then tap Retry Upload.\n\n' +
+      'Do not leave this page until you see ✅ with a Drive link.';
+    if (retry) retry.style.display = 'inline-block';
+    document.getElementById('submitModal').classList.add('active');
+    return;
+  }
+  if (title) { title.textContent = emailErr ? '⚠️ Saved — email failed' : '✅ Form Submitted'; title.style.color = ''; }
+  if (retry) retry.style.display = 'none';
+  msg.textContent =
+    (emailErr ? '⚠️ Email failed: ' + emailErr + '\n\n' : '✅ Audit submitted!\n\n') +
+    '🆔 Document Ref: ' + (docRef || '—') + '\n' +
+    '☁️ PDF + Excel uploaded to Google Drive\n' +
+    (emailErr ? '' : '📧 Email notification sent\n') +
+    (driveFailMsg ? '\n⚠️ A later step did not finish: ' + driveFailMsg + '\n(The audit log or client record may need updating.)\n' : '') +
+    '\nDrive link:\n' + driveLink;
+  document.getElementById('submitModal').classList.add('active');
+  showReturnButton();
 }
 
 // =====================================================================
@@ -4839,6 +4843,7 @@ async function saveAndSend() { return uploadAndSend(); } // alias for backwards 
 const GDRIVE_CLIENT_ID   = '49055725643-mlnqu8l92vmau83rnrk8imupiqvs03t1.apps.googleusercontent.com';
 const GDRIVE_FOLDER_NAME = 'BioBlue Audits';
 let gdriveToken = null;
+let gdriveTokenAt = 0;   // when the token was issued — Google tokens last ~1 hour
 let _auditJsonFileId = null;   // tracks JSON file ID when editing an existing audit
 let _existingSubmissionFileId = null;
 let _existingSubmissionFileName = null;
@@ -6257,7 +6262,7 @@ async function fetchClientDetails(clientId) {
           client_id: GDRIVE_CLIENT_ID,
           scope: 'https://www.googleapis.com/auth/drive.file',
           callback: r => {
-            if (r.access_token) { gdriveToken = r.access_token; resolve(); }
+            if (r.access_token) { gdriveToken = r.access_token; gdriveTokenAt = Date.now(); resolve(); }
             else reject(new Error(r.error || 'Sign-in failed'));
           },
           error_callback: e => reject(new Error(e.message || 'Sign-in failed'))
@@ -6443,6 +6448,17 @@ async function getOrCreateClientFolder(parentFolderId, folderName) {
 // inline pattern so saveDraft and other functions can call it too)
 // =====================================================================
 async function getDriveToken() {
+  // Google access tokens only last about an hour, and a long audit can easily outlive one.
+  // Discard an old token, and quickly test an older one against Drive, so the upload at the
+  // end of a long audit signs in again instead of failing part-way.
+  if (gdriveToken && (Date.now() - gdriveTokenAt) > 50 * 60 * 1000) gdriveToken = null;
+  if (gdriveToken && (Date.now() - gdriveTokenAt) > 5 * 60 * 1000) {
+    try {
+      const chk = await fetch('https://www.googleapis.com/drive/v3/about?fields=user',
+        { headers: { Authorization: `Bearer ${gdriveToken}` } });
+      if (chk.status === 401) gdriveToken = null;
+    } catch(e) { /* offline blip — let the real call report it */ }
+  }
   if (gdriveToken) return;
   if (typeof google === 'undefined' || !google?.accounts?.oauth2) {
     throw new Error('Google API not loaded — check internet connection and reload the page');
@@ -6454,7 +6470,7 @@ async function getDriveToken() {
         scope: 'https://www.googleapis.com/auth/drive.file',
         callback: (response) => {
           if (response && response.access_token) {
-            gdriveToken = response.access_token;
+            gdriveToken = response.access_token; gdriveTokenAt = Date.now();
             resolve();
           } else {
             const err = response?.error || 'Sign-in failed or was cancelled';

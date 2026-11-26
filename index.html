@@ -1156,6 +1156,10 @@
 
   /* highlight required */
   .yn-item.required-empty { border-color: #f5c6c2; background: #fff5f5; }
+.bb-conn{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:rgba(255,255,255,0.78);margin-top:5px;}
+.bb-conn-dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,0.35);flex-shrink:0;}
+.bb-conn.on .bb-conn-dot{background:#4ADE80;box-shadow:0 0 6px rgba(74,222,128,0.7);}
+.bb-conn.err .bb-conn-dot{background:#f87171;}
 </style>
 </head>
 <body>
@@ -1168,6 +1172,7 @@
     <div>
       <div class="header-title">Site Audit Checklist</div>
       <div class="header-subtitle">Bulk AdBlue® Safety &amp; QA · v2 2025</div>
+      <div class="bb-conn" title="Google sign-in (shared by all Field Tools)"><span class="bb-conn-dot"></span><span class="bb-conn-label">Not connected to Google</span></div>
     </div>
   </div>
 
@@ -1410,13 +1415,20 @@
           </div>
           <div class="field-row">
             <div class="field-group">
+              <label class="field-label">Mobile</label>
+              <input type="tel" id="bizContactPhone" placeholder="04XX XXX XXX">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Office phone</label>
+              <input type="tel" id="bizContactOfficePhone" placeholder="">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
               <label class="field-label required">Email</label>
               <input type="email" id="bizContactEmail" placeholder="name@company.com.au">
             </div>
-            <div class="field-group">
-              <label class="field-label required">Phone</label>
-              <input type="tel" id="bizContactPhone" placeholder="04XX XXX XXX">
-            </div>
+            <div class="field-group"></div>
           </div>
         </div>
       </div>
@@ -2881,6 +2893,7 @@ function collectFormData() {
     bizContactRole:  get('bizContactRole'),
     bizContactEmail: get('bizContactEmail'),
     bizContactPhone: get('bizContactPhone'),
+    bizContactOfficePhone: get('bizContactOfficePhone'),
     logContactName:  get('logContactName'),
     logContactRole:  get('logContactRole'),
     logContactEmail: get('logContactEmail'),
@@ -3165,6 +3178,7 @@ function autoFillCustomer(siteNum) {
   setField('bizContactRole',  c.bizContactRole  || c.contactTitle || '');
   setField('bizContactEmail', c.bizContactEmail || c.contactEmail || '');
   setField('bizContactPhone', c.bizContactPhone || c.contactMobile || '');
+  setField('bizContactOfficePhone', c.bizContactOfficePhone || '');
   setField('logContactName',  c.logContactName  || '');
   setField('logContactRole',  c.logContactRole  || '');
   setField('logContactEmail', c.logContactEmail || '');
@@ -3231,7 +3245,7 @@ function autoFillCustomer(siteNum) {
 
 function clearCustomerFields() {
   ['siteAddress','siteGPSCoords','suburb','postcode',
-   'bizContactName','bizContactRole','bizContactEmail','bizContactPhone',
+   'bizContactName','bizContactRole','bizContactEmail','bizContactPhone','bizContactOfficePhone',
    'logContactName','logContactRole','logContactEmail','logContactPhone',
    'podEmail','podEmail2','podEmail3','_siteLocationName','_trackpodName','_descriptor','_generatedSiteName',
    'tankVolume','safeFill','tankSerial','tankType','tankTypeOther','dipSystem','dipSystemOther',
@@ -4264,7 +4278,6 @@ async function uploadAndSend() {
     { id: 'bizContactName', check: () => document.getElementById('bizContactName')?.value.trim() !== '', label: 'Business Contact — Full Name', section: 'sectionA' },
     { id: 'bizContactRole', check: () => document.getElementById('bizContactRole')?.value.trim() !== '', label: 'Business Contact — Title / Role', section: 'sectionA' },
     { id: 'bizContactEmail',check: () => document.getElementById('bizContactEmail')?.value.trim() !== '', label: 'Business Contact — Email', section: 'sectionA' },
-    { id: 'bizContactPhone',check: () => document.getElementById('bizContactPhone')?.value.trim() !== '', label: 'Business Contact — Phone', section: 'sectionA' },
     { id: 'logContactName', check: () => document.getElementById('logContactName')?.value.trim() !== '', label: 'Logistics Contact — Full Name', section: 'sectionA' },
     { id: 'logContactRole', check: () => document.getElementById('logContactRole')?.value.trim() !== '', label: 'Logistics Contact — Title / Role', section: 'sectionA' },
     { id: 'logContactEmail',check: () => document.getElementById('logContactEmail')?.value.trim() !== '', label: 'Logistics Contact — Email', section: 'sectionA' },
@@ -4844,6 +4857,57 @@ const GDRIVE_CLIENT_ID   = '49055725643-mlnqu8l92vmau83rnrk8imupiqvs03t1.apps.go
 const GDRIVE_FOLDER_NAME = 'BioBlue Audits';
 let gdriveToken = null;
 let gdriveTokenAt = 0;   // when the token was issued — Google tokens last ~1 hour
+
+// =====================================================================
+// SHARED GOOGLE SIGN-IN (26 Nov 2026) — every Field Tools app (Hub, forms,
+// Tracker) runs on the same site with the same Google client, so one sign-in
+// is kept on this device and shared by all of them until ~10 min before
+// Google's 1-hour expiry (margin covers a long audit upload). A sign-in made
+// in another app is picked up here too. Google rejects it (401) or it
+// expires -> cleared; the next tap asks Google again. tokenLive() replaces
+// bare gdriveToken checks. Same block in every app — keep them in step.
+// =====================================================================
+const SHARED_TOKEN_STORE = 'bb_gtoken';
+let gdriveTokenExp = 0, connRejected = false;
+function storeToken(r) {
+  gdriveToken = r.access_token;
+  gdriveTokenExp = Date.now() + ((Number(r.expires_in) || 3600) - 600) * 1000;
+  try { localStorage.setItem(SHARED_TOKEN_STORE, JSON.stringify({ t: gdriveToken, exp: gdriveTokenExp })); } catch (e) {}
+  connRejected = false;
+  updateConnDot();
+}
+function clearToken() {
+  gdriveToken = null; gdriveTokenExp = 0;
+  try { localStorage.removeItem(SHARED_TOKEN_STORE); } catch (e) {}
+}
+function tokenLive() {
+  if (gdriveToken && Date.now() < gdriveTokenExp) return true;
+  try {
+    const s = JSON.parse(localStorage.getItem(SHARED_TOKEN_STORE) || 'null');
+    if (s && s.t && Date.now() < s.exp) { gdriveToken = s.t; gdriveTokenExp = s.exp; return true; }
+  } catch (e) {}
+  clearToken();   // nothing valid here or in the store (an expired entry is removed)
+  return false;
+}
+// Green dot = signed in right now; grey = not signed in / expired; red = Google rejected it.
+function updateConnDot() {
+  const on = tokenLive();
+  document.querySelectorAll('.bb-conn').forEach(el => {
+    el.classList.toggle('on', on);
+    el.classList.toggle('err', !on && connRejected);
+    const l = el.querySelector('.bb-conn-label');
+    if (l) l.textContent = on ? 'Connected to Google' : connRejected ? 'Google sign-in expired \u2014 sign in again' : 'Not connected to Google';
+  });
+}
+const _bbRawFetch = window.fetch.bind(window);
+window.fetch = async (url, opts) => {
+  const r = await _bbRawFetch(url, opts);
+  if (r.status === 401 && String(url).includes('googleapis.com')) { clearToken(); connRejected = true; updateConnDot(); }
+  return r;
+};
+setInterval(updateConnDot, 30000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') updateConnDot(); });
+document.addEventListener('DOMContentLoaded', updateConnDot);
 let _auditJsonFileId = null;   // tracks JSON file ID when editing an existing audit
 let _existingSubmissionFileId = null;
 let _existingSubmissionFileName = null;
@@ -5088,6 +5152,7 @@ function restoreAuditFormFields(data) {
   setVal('bizContactRole', data.bizContactRole || data.siteContactTitle);
   setVal('bizContactEmail', data.bizContactEmail || data.siteEmail);
   setVal('bizContactPhone', data.bizContactPhone || data.siteMobile);
+  setVal('bizContactOfficePhone', data.bizContactOfficePhone);
   setVal('logContactName', data.logContactName);
   setVal('logContactRole', data.logContactRole);
   setVal('logContactEmail', data.logContactEmail);
@@ -6237,7 +6302,7 @@ async function loadClientFromURL() {
   // If we already hold a token (rare on a fresh page), fetch straight away.
   // Otherwise show the "Tap to load" button so the token popup fires from a
   // real user gesture (browsers block popups opened without a click).
-  if (gdriveToken) {
+  if (tokenLive()) {
     fetchClientDetails(clientId);
   } else {
     showPrefillRetry(clientId);
@@ -6247,7 +6312,7 @@ async function loadClientFromURL() {
 async function fetchClientDetails(clientId) {
   try {
     // Acquire token if needed — this runs from a user tap, so the popup is allowed
-    if (!gdriveToken) {
+    if (!tokenLive()) {
       let _waited = 0;
       while ((typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) && _waited < 5000) {
         await new Promise(r => setTimeout(r, 100));
@@ -6262,7 +6327,7 @@ async function fetchClientDetails(clientId) {
           client_id: GDRIVE_CLIENT_ID,
           scope: 'https://www.googleapis.com/auth/drive.file',
           callback: r => {
-            if (r.access_token) { gdriveToken = r.access_token; gdriveTokenAt = Date.now(); resolve(); }
+            if (r.access_token) { storeToken(r); gdriveTokenAt = Date.now(); resolve(); }
             else reject(new Error(r.error || 'Sign-in failed'));
           },
           error_callback: e => reject(new Error(e.message || 'Sign-in failed'))
@@ -6312,6 +6377,7 @@ async function fetchClientDetails(clientId) {
       bizContactRole:    get('Business Contact Role') || get('Contact Title'),
       bizContactEmail:   get('Business Contact Email')|| get('Contact Email'),
       bizContactPhone:   get('Business Contact Phone')|| get('Contact Mobile'),
+      bizContactOfficePhone: get('Business Contact Office Phone'),
       logContactName:    get('Logistics Name'),
       logContactRole:    get('Logistics Role'),
       logContactEmail:   get('Logistics Email'),
@@ -6451,12 +6517,14 @@ async function getDriveToken() {
   // Google access tokens only last about an hour, and a long audit can easily outlive one.
   // Discard an old token, and quickly test an older one against Drive, so the upload at the
   // end of a long audit signs in again instead of failing part-way.
-  if (gdriveToken && (Date.now() - gdriveTokenAt) > 50 * 60 * 1000) gdriveToken = null;
+  // Shared sign-in (26 Nov 2026): tokenLive() drops the token ~10 min before Google's
+  // 1-hour expiry and picks up a sign-in made in another app (gdriveTokenAt 0 -> probed).
+  tokenLive();
   if (gdriveToken && (Date.now() - gdriveTokenAt) > 5 * 60 * 1000) {
     try {
       const chk = await fetch('https://www.googleapis.com/drive/v3/about?fields=user',
         { headers: { Authorization: `Bearer ${gdriveToken}` } });
-      if (chk.status === 401) gdriveToken = null;
+      if (chk.status === 401) clearToken();
     } catch(e) { /* offline blip — let the real call report it */ }
   }
   if (gdriveToken) return;
@@ -6470,7 +6538,7 @@ async function getDriveToken() {
         scope: 'https://www.googleapis.com/auth/drive.file',
         callback: (response) => {
           if (response && response.access_token) {
-            gdriveToken = response.access_token; gdriveTokenAt = Date.now();
+            storeToken(response); gdriveTokenAt = Date.now();
             resolve();
           } else {
             const err = response?.error || 'Sign-in failed or was cancelled';
@@ -6594,7 +6662,7 @@ function repairClientRecordsHeaders(wb) {
   const CANONICAL = [
     'Client ID','Billing Entity','Site Name','Site Location Name','Descriptor','Trackpod Name',
     'Street Address','Suburb','State','Postcode',
-    'Business Contact Name','Business Contact Role','Business Contact Email','Business Contact Phone',
+    'Business Contact Name','Business Contact Role','Business Contact Email','Business Contact Phone','Business Contact Office Phone',
     'KDM Name','KDM Role','KDM Email','KDM Phone',
     'Logistics Name','Logistics Role','Logistics Email','Logistics Phone',
     'Admin Contact Name','Admin Contact Role','Admin Contact Email','Admin Contact Phone',
@@ -6628,7 +6696,7 @@ function repairClientRecordsHeaders(wb) {
 // happens later in updateClientRecordFromAudit. Non-fatal if it fails.
 // =====================================================================
 async function peekAuditDocCount(clientId) {
-  if (!clientId || !gdriveToken) return null;
+  if (!clientId || !tokenLive()) return null;
   try {
     const folderRes = await fetch(
       `https://www.googleapis.com/drive/v3/files?q=name='${GDRIVE_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id)`,
@@ -6733,6 +6801,7 @@ async function updateClientRecordFromAudit(rootFolderId, clientId) {
       setCol('Business Contact Role',  auditData.bizContactRole);
       setCol('Business Contact Email', auditData.bizContactEmail);
       setCol('Business Contact Phone', auditData.bizContactPhone);
+      setCol('Business Contact Office Phone', auditData.bizContactOfficePhone);
       setCol('Logistics Name',  auditData.logContactName);
       setCol('Logistics Role',  auditData.logContactRole);
       setCol('Logistics Email', auditData.logContactEmail);
@@ -6819,7 +6888,7 @@ async function getAdminSheetId(rootFolderId) {
   const headers = [
     'Client ID','Billing Entity','Site Name','Site Location Name','Descriptor','Trackpod Name',
     'Street Address','Suburb','State','Postcode',
-    'Business Contact Name','Business Contact Role','Business Contact Email','Business Contact Phone',
+    'Business Contact Name','Business Contact Role','Business Contact Email','Business Contact Phone','Business Contact Office Phone',
     'KDM Name','KDM Role','KDM Email','KDM Phone',
     'Logistics Name','Logistics Role','Logistics Email','Logistics Phone',
     'Admin Contact Name','Admin Contact Role','Admin Contact Email','Admin Contact Phone',
